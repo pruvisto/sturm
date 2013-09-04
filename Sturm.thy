@@ -1,5 +1,5 @@
 theory Sturm
-imports Misc "~~/src/HOL/Library/Poly_Deriv"
+imports "~~/src/HOL/Library/Poly_Deriv" SturmLibrary
 begin
 
 locale quasi_sturm_seq =
@@ -1142,17 +1142,87 @@ next
     finally show ?thesis by simp
 qed
 
-lemma [code]: 
-  "card {x::real. a \<le> x \<and> x \<le> b \<and> poly p x = 0} = 
-       Suc (count_roots_between p a b) - 
-      (if (a \<le> b \<and> poly p a = 0 \<and> p \<noteq> 0) \<or> (a = b \<and> p = 0) then 0 else 1)" 
-  by (rule poly_card_roots_leq_leq, auto simp: count_roots_between_correct)
+lemma poly_card_roots_leq_less:
+  assumes "Suc (count_roots_between p a b) = 
+      (if p = 0 \<or> a \<ge> b then Suc 0
+         else (if poly p a = 0 then 0 else Suc 0) + 
+              (if poly p b = 0 then Suc 0 else 0)) + n"
+  shows "card {x::real. a \<le> x \<and> x < b \<and> poly p x = 0} = n"
+proof (cases "p = 0 \<or> a \<ge> b")
+  case True
+    note True' = this
+    show ?thesis
+    proof (cases "a \<ge> b")
+      case False
+        have [simp]: "{x. a < x \<and> x \<le> b} = {a<..b}"
+                     "{x. a \<le> x \<and> x < b} = {a..<b}" by auto
+        from False True' assms show ?thesis 
+            by (auto simp: count_roots_between_correct real_interval_card_eq)
+    next
+      case True
+        with True' have "{x. a \<le> x \<and> x < b \<and> poly p x = 0} = 
+                          {x. a < x \<and> x \<le> b \<and> poly p x = 0}"
+          by (auto simp: less_eq_real_def)
+      thus ?thesis using poly_card_roots_less_leq assms True by auto
+  qed
+next
+  case False
+    let ?A = "{x. a \<le> x \<and> x < b \<and> poly p x = 0}"
+    let ?B = "{x. a < x \<and> x \<le> b \<and> poly p x = 0}"
+    let ?C = "{x. x = b \<and> poly p x = 0}"
+    let ?D = "{x. x = a \<and> poly p a = 0}"
+    from False have A: "?C \<subseteq> ?B" and B: "(?B-?C) \<inter> ?D = {}" by auto
+    have CD_if: "?C = (if poly p b = 0 then {b} else {})"
+                "?D = (if poly p a = 0 then {a} else {})" by auto
+    from False poly_roots_finite 
+        have [simp]: "finite ?A" "finite ?B" "finite ?C" "finite ?D"
+            by (fast, fast, simp_all)
+    from False have C: "?A = (?B \<union> ?D) - ?C" by (auto simp: less_eq_real_def)
+    from False have "?C \<subseteq> ?B \<union> ?D" "?B \<inter> ?D = {}" by auto
 
-schematic_lemma "sturm [:0::real, -17/2097152, -49/16777216, 1/6, 1/24, 1/120:] = A" apply (simp add: sturm_def )
+    from count_roots_between_correct
+        have "Suc (count_roots_between p a b) = Suc (card ?B)" by simp
+    also note assms
+    finally have "Suc (card ?B) = n + (if poly p a = 0 then 0 else Suc 0) +
+                      (if poly p b = 0 then Suc 0 else 0)" using False by simp
+    hence "n = Suc (card ?B) - (if poly p a = 0 then 0 else Suc 0) - 
+               (if poly p b = 0 then Suc 0 else 0)" by (auto simp: field_simps)
+    also have "... = card ?B + card ?D - card ?C" by (auto simp: CD_if)
+    also have "... = card ?A"
+        by (rule sym, subst C, subst card_Diff_subset, simp, fact,
+                subst card_Un_disjoint, simp, simp, fact, rule refl)
+    finally show ?thesis ..
+qed
 
-lemma
-  "card {x::real. -0.010831 \<le> x \<and> x \<le> 0.010831 \<and> 
+lemma poly_card_roots:
+  assumes "count_roots p = n"
+  shows "card {x::real. poly p x = 0} = n"
+  using assms count_roots_correct by simp
+
+lemmas sturm_intros = poly_card_roots poly_card_roots_less_leq 
+    poly_card_roots_leq_less poly_card_roots_less_less poly_card_roots_leq_leq
+
+method_setup sturm = {*
+let
+  fun sturm_conv thy = Code_Runtime.static_holds_conv thy
+  [@{const_name count_roots_between}, @{const_name count_roots},
+   @{const_name Trueprop}, @{const_name Rat.of_int}, 
+   @{const_name Power.power_class.power},
+   @{const_name Num.nat_of_num}]
+in
+  Scan.succeed (fn ctxt =>
+    SIMPLE_METHOD' (
+      fn i =>
+        resolve_tac @{thms sturm_intros} 1
+        THEN CONVERSION (sturm_conv (Proof_Context.theory_of ctxt)) 1
+        THEN rtac TrueI 1
+))
+end
+*} "decide how many roots a polynomial has"
+
+lemma example:
+  "card {x::real. -0.010831 < x \<and> x < 0.010831 \<and> 
      poly [:0, -17/2097152, -49/16777216, 1/6, 1/24, 1/120:] x = 0} = 3"
-  by (rule poly_card_roots_leq_leq, eval+)
+ by sturm
 
 end
