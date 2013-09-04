@@ -4,7 +4,8 @@ begin
 
 locale quasi_sturm_seq =
   fixes ps :: "(real poly) list"
-  assumes last_ps_const[simp]: "degree (last ps) = 0"
+  assumes last_ps_sgn_const[simp]: 
+      "\<And>x y. sgn (poly (last ps) x) = sgn (poly (last ps) y)"
   assumes ps_not_Nil[simp]: "ps \<noteq> []"
   assumes signs: "\<And>i x. \<lbrakk>i < length ps - 2; poly (ps ! (i+1)) x = 0\<rbrakk>
                      \<Longrightarrow> sgn (poly (ps ! (i+2)) x) = - sgn (poly (ps ! i) x)"
@@ -126,11 +127,15 @@ lemma [simp]: "\<not>quasi_sturm_seq []" by (simp add: quasi_sturm_seq_def)
 lemma quasi_sturm_seq_Cons:
   assumes "quasi_sturm_seq (p#ps)" and "ps \<noteq> []"
   shows "quasi_sturm_seq ps"
-proof
+proof (unfold_locales)
   show "ps \<noteq> []" by fact
+next
   from assms(1) interpret quasi_sturm_seq "p#ps" .
-  from last_ps_const and `ps \<noteq> []` show "degree (last ps) = 0" by simp_all
-
+  fix x y
+  from last_ps_sgn_const and `ps \<noteq> []` 
+      show "sgn (poly (last ps) x) = sgn (poly (last ps) y)" by simp_all
+next
+  from assms(1) interpret quasi_sturm_seq "p#ps" .
   fix i x
   assume "i < length ps - 2" and "poly (ps ! (i+1)) x = 0"
   with signs[of "i+1"] 
@@ -209,7 +214,7 @@ qed
 
 
 locale sturm_seq_squarefree = sturm_seq +
-  assumes p_q_coprime: "coprime (ps ! 0) (ps ! 1)"
+  assumes p_squarefree: "rsquarefree p"
 begin
 
   lemma no_adjacent_roots: "no_adjacent_roots ps"
@@ -217,17 +222,15 @@ begin
     fix i x
     assume i_in_range: "i < length ps - 1"
     assume roots: "poly (ps ! i) x = 0" "poly (ps ! (i + 1)) x = 0"
+    from ps_first_two obtain q ps' where ps_q_ps': "ps = p#q#ps'" by blast
     from sturm_adjacent_root_propagate_left[OF i_in_range roots]
       have "\<forall>j\<le>i+1. poly (ps ! j) x = 0" by auto
     hence "poly (ps ! 0) x = 0" and "poly (ps ! 1) x = 0" by simp_all
-    hence "[:-x, 1:] dvd (ps ! 0)" and "[:-x, 1:] dvd (ps ! 1)"
-        by (simp_all add: poly_eq_0_iff_dvd)
-    hence "[:-x, 1:] dvd gcd (ps ! 0) (ps ! 1)" by simp
-    moreover have "\<not>[:-x, 1:] dvd 1"
-        by (simp add: poly_eq_0_iff_dvd[symmetric])
-    ultimately have "\<not>coprime (ps ! 0) (ps ! 1)" 
-        by (intro notI, simp del: dvd_poly_gcd_iff)
-    with p_q_coprime show False by contradiction
+    hence "poly p x = 0" by (simp add: ps_q_ps')
+    moreover from deriv[OF this] and `poly (ps!1) x = 0` 
+        have "poly (pderiv p) x = 0" by (simp add: sgn_zero_iff)
+    ultimately show False using p_squarefree 
+        by (auto simp: rsquarefree_roots)
   qed
 
 end
@@ -430,9 +433,8 @@ next
       from poly_neighbourhood_same_sign[OF `poly p x\<^isub>0 \<noteq> 0`] guess \<delta> .
     hence \<delta>_props: "\<And>x. \<bar>x - x\<^isub>0\<bar> < \<delta> \<Longrightarrow> sgn (poly p x) = sgn (poly p x\<^isub>0)" 
         by blast
-    from last_ps_const have "degree q = 0" by simp
-    then obtain c where "q = [:c:]" by (cases q, simp split: split_if_asm)
-    hence sgn_q: "\<And>x. sgn (poly q x) = sgn (poly q x\<^isub>0)" by simp
+    from last_ps_sgn_const 
+        have sgn_q: "\<And>x. sgn (poly q x) = sgn (poly q x\<^isub>0)" by simp
     show ?case
         by (force intro: isCont_const_neighbourhood[OF `\<delta> > 0`] 
                          \<delta>_props sgn_q same_signs_imp_same_sign_changes)
@@ -919,10 +921,16 @@ lemma sturm_gcd: "r \<in> set (sturm p) \<Longrightarrow> gcd p (pderiv p) dvd r
 
 lemma sturm_seq_sturm[simp]: "sturm_seq (sturm p) p"
 proof
-  show "degree (last (sturm p)) = 0" by simp
   show "sturm p \<noteq> []" by simp
   show "hd (sturm p) = p" by simp
   show "length (sturm p) \<ge> 2" by simp
+next
+  fix x :: real and y :: real
+  have "degree (last (sturm p)) = 0" by simp
+  then obtain c where "last (sturm p) = [:c:]" 
+      by (cases "last (sturm p)", simp split: split_if_asm)
+  thus "\<And>x y. sgn (poly (last (sturm p)) x) =
+            sgn (poly (last (sturm p)) y)" by simp
 next
   fix x show "sgn (poly (sturm p ! 1) x) = sgn (poly (pderiv p) x)" by simp
 next
@@ -957,8 +965,8 @@ proof
   interpret sturm_seq: sturm_seq "sturm_squarefree p" p' 
       by (simp add: sturm_squarefree_def)
 
-  show "degree (last (sturm_squarefree p)) = 0"  
-      by (simp add: sturm_squarefree_def)
+  show "\<And>x y. sgn (poly (last (sturm_squarefree p)) x) = 
+      sgn (poly (last (sturm_squarefree p)) y)" by simp
   show "sturm_squarefree p \<noteq> []" by simp
   show "hd (sturm_squarefree p) = p'" by (simp add: sturm_squarefree_def)
   show "length (sturm_squarefree p) \<ge> 2" by simp
@@ -966,8 +974,14 @@ proof
   have [simp]: "sturm_squarefree p ! 0 = p'" 
                "sturm_squarefree p ! Suc 0 = pderiv p'" 
       by (simp_all add: sturm_squarefree_def) 
-  from poly_div_gcd_squarefree'[OF assms(1)]
-     show "coprime (sturm_squarefree p ! 0) (sturm_squarefree p ! 1)" by simp
+  show "rsquarefree p'" 
+  proof (subst rsquarefree_roots, clarify)
+    fix x assume "poly p' x = 0" "poly (pderiv p') x = 0"
+    hence "[:-x,1:] dvd gcd p' (pderiv p')" by (simp add: poly_eq_0_iff_dvd)
+    also from poly_div_gcd_squarefree'(1)[OF assms(1)]
+        have "gcd p' (pderiv p') = 1" by simp
+    finally show False by (simp add: poly_eq_0_iff_dvd[symmetric])
+  qed
 
   from sturm_seq.signs show "\<And>i x. \<lbrakk>i < length (sturm_squarefree p) - 2;
            poly (sturm_squarefree p ! (i + 1)) x = 0\<rbrakk>
