@@ -1,3 +1,9 @@
+(*  Title:      ListGroup.thy
+    Author:     Manuel Eberl <eberlm@in.tum.de>
+
+    Provides a "group" function for lists, which "merges" all equal adjacent
+    elements in the given list, i.e. group [1,2,2,3,3,3,2,2] = [1,2,3,2]
+*)
 theory ListGroup
 imports List
 begin

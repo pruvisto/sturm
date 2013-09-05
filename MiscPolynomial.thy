@@ -2,6 +2,55 @@ theory MiscPolynomial
 imports "~~/src/HOL/Library/Poly_Deriv" Misc MiscAnalysis
 begin
 
+section {* General simplification lemmas *}
+
+lemma degree_power_eq:
+  "(p::('a::idom) poly) \<noteq> 0 \<Longrightarrow> degree (p^n) = n * degree p"
+  by (induction n, simp_all add: degree_mult_eq)
+
+lemma poly_altdef: "poly p (x::real) = (\<Sum>i\<le>degree p. coeff p i * x ^ i)"
+proof (induction p rule: pCons_induct)
+  case (pCons a p)
+    show ?case
+    proof (cases "p = 0")
+      case False
+      let ?p' = "pCons a p"
+      note poly_pCons[of a p x]
+      also note pCons.IH
+      also have "a + x * (\<Sum>i\<le>degree p. coeff p i * x ^ i) = 
+                 coeff ?p' 0 * x^0 + (\<Sum>i\<le>degree p. coeff ?p' (Suc i) * x^Suc i)" 
+          by (simp add: field_simps setsum_right_distrib coeff_pCons)
+      also note setsum_atMost_Suc_shift[symmetric]
+      also note degree_pCons_eq[OF `p \<noteq> 0`, of a, symmetric]
+      finally show ?thesis .
+   qed simp
+qed simp
+
+lemma pderiv_div:
+  assumes [simp]: "q dvd p" "q \<noteq> 0"
+  shows "pderiv (p div q) = (q * pderiv p - p * pderiv q) div (q * q)"
+        "q*q dvd (q * pderiv p - p * pderiv q)"
+proof-
+  note pderiv_mult[of q "p div q"]
+  also have "q * (p div q) = p" by (simp add: dvd_mult_div_cancel)
+  finally have "q * pderiv (p div q) = q * pderiv p div q - p * pderiv q div q"
+      by (simp add: algebra_simps dvd_div_mult[symmetric]) 
+  also have "... = (q * pderiv p - p * pderiv q) div q"
+      by (rule div_diff, simp_all)
+  finally have A: "pderiv (p div q) * q div q = 
+                   (q * pderiv p - p * pderiv q) div q div q" 
+      by (simp add: algebra_simps)
+  thus "pderiv (p div q) = (q * pderiv p - p * pderiv q) div (q * q)" 
+        by (simp add: algebra_simps poly_div_mult_right) 
+  from assms obtain r where "p = q * r" unfolding dvd_def by blast
+  hence "q * pderiv p - p * pderiv q = (q * q) * pderiv r" 
+      by (simp add: algebra_simps pderiv_mult)
+  thus "q*q dvd (q * pderiv p - p * pderiv q)" by simp
+qed
+
+
+section {* Divisibility of polynomials *}
+
 lemma div_gcd_coprime_poly:
   assumes "(p :: ('a::field) poly) \<noteq> 0 \<or> q \<noteq> 0" 
   defines [simp]: "d \<equiv> gcd p q"
@@ -39,74 +88,6 @@ proof-
       using assms by (simp add: field_simps)
 qed
 
-lemma pderiv_div:
-  assumes [simp]: "q dvd p" "q \<noteq> 0"
-  shows "pderiv (p div q) = (q * pderiv p - p * pderiv q) div (q * q)"
-        "q*q dvd (q * pderiv p - p * pderiv q)"
-proof-
-  note pderiv_mult[of q "p div q"]
-  also have "q * (p div q) = p" by (simp add: dvd_mult_div_cancel)
-  finally have "q * pderiv (p div q) = q * pderiv p div q - p * pderiv q div q"
-      by (simp add: algebra_simps dvd_div_mult[symmetric]) 
-  also have "... = (q * pderiv p - p * pderiv q) div q"
-      by (rule div_diff, simp_all)
-  finally have A: "pderiv (p div q) * q div q = 
-                   (q * pderiv p - p * pderiv q) div q div q" 
-      by (simp add: algebra_simps)
-  thus "pderiv (p div q) = (q * pderiv p - p * pderiv q) div (q * q)" 
-        by (simp add: algebra_simps poly_div_mult_right) 
-  from assms obtain r where "p = q * r" unfolding dvd_def by blast
-  hence "q * pderiv p - p * pderiv q = (q * q) * pderiv r" 
-      by (simp add: algebra_simps pderiv_mult)
-  thus "q*q dvd (q * pderiv p - p * pderiv q)" by simp
-qed
-
-lemma poly_neighbourhood_without_roots:
-  assumes "(p :: real poly) \<noteq> 0"
-  obtains \<epsilon> where "\<epsilon> > 0" and "\<forall>x. \<bar>x-x\<^isub>0\<bar> < \<epsilon> \<and> x \<noteq> x\<^isub>0 \<longrightarrow> poly p x \<noteq> 0"
-proof-
-  case goal1
-  {fix \<epsilon> :: real assume "\<epsilon> > 0"
-  have fin: "finite {x. \<bar>x-x\<^isub>0\<bar> < \<epsilon> \<and> x \<noteq> x\<^isub>0 \<and> poly p x = 0}"
-      using poly_roots_finite[OF assms] by simp
-  with `\<epsilon> > 0`have "\<exists>\<delta>>0. \<delta>\<le>\<epsilon> \<and> (\<forall>x. \<bar>x-x\<^isub>0\<bar> < \<delta> \<and> x \<noteq> x\<^isub>0 \<longrightarrow> poly p x \<noteq> 0)"
-  proof (induction "card {x. \<bar>x-x\<^isub>0\<bar> < \<epsilon> \<and> x \<noteq> x\<^isub>0 \<and> poly p x = 0}" 
-         arbitrary: \<epsilon> rule: less_induct)
-  case (less \<epsilon>)
-  let ?A = "{x. \<bar>x - x\<^isub>0\<bar> < \<epsilon> \<and> x \<noteq> x\<^isub>0 \<and> poly p x = 0}"
-  show ?case
-    proof (cases "card ?A")
-    case 0
-      hence "?A = {}" using less by auto
-      thus ?thesis using less(2) by (rule_tac exI[of _ \<epsilon>], auto)
-    next
-    case (Suc _)
-      with less(3) have "{x. \<bar>x - x\<^isub>0\<bar> < \<epsilon> \<and> x \<noteq> x\<^isub>0 \<and> poly p x = 0} \<noteq> {}" by force
-      then obtain x where x_props: "\<bar>x - x\<^isub>0\<bar> < \<epsilon>" "x \<noteq> x\<^isub>0" "poly p x = 0" by blast
-      def \<epsilon>' \<equiv> "\<bar>x - x\<^isub>0\<bar> / 2"
-      have "\<epsilon>' > 0" "\<epsilon>' < \<epsilon>" unfolding \<epsilon>'_def using x_props by simp_all
-      from x_props(1,2) and `\<epsilon> > 0`
-          have "x \<notin> {x'. \<bar>x' - x\<^isub>0\<bar> < \<epsilon>' \<and> x' \<noteq> x\<^isub>0 \<and> poly p x' = 0}" (is "_ \<notin> ?B")
-          by (auto simp: \<epsilon>'_def)
-      moreover from x_props 
-          have "x \<in> {x. \<bar>x - x\<^isub>0\<bar> < \<epsilon> \<and> x \<noteq> x\<^isub>0 \<and> poly p x = 0}" by blast
-      ultimately have "?B \<subset> ?A" by auto
-      hence "card ?B < card ?A" "finite ?B" 
-          by (rule psubset_card_mono[OF less(3)], 
-              blast intro: finite_subset[OF _ less(3)])
-      from less(1)[OF this(1) `\<epsilon>' > 0` this(2)]
-          show ?thesis using `\<epsilon>' < \<epsilon>` by force
-    qed
-  qed}
-  from this[of 1] obtain \<delta> where 
-      "\<delta> > 0" "\<forall>x. \<bar>x - x\<^isub>0\<bar> < \<delta> \<and> x \<noteq> x\<^isub>0 \<longrightarrow> poly p x \<noteq> 0" by auto
-  from goal1[OF this] show ?thesis .
-qed
-
-lemma degree_power_eq:
-  "(p::('a::idom) poly) \<noteq> 0 \<Longrightarrow> degree (p^n) = n * degree p"
-  by (induction n, simp_all add: degree_mult_eq)
-
 lemma poly_gcd_extended_euclidean:
   "\<exists>r s. gcd (p::('a::field) poly) q = r*p+s*q"
 proof (induction rule: gcd_poly.induct)
@@ -127,7 +108,10 @@ next
     thus ?case by blast
 qed
 
-lemma poly_div_gcd_squarefree:
+
+
+(* TODO: make this less ugly *)
+lemma poly_div_gcd_squarefree_aux:
   assumes "pderiv (p::('a::real_normed_field) poly) \<noteq> 0"
   defines "d \<equiv> gcd p (pderiv p)"
   shows "coprime (p div d) (pderiv (p div d))" and
@@ -217,7 +201,7 @@ proof-
       by (force intro: poly_gcd_unique[of 1 t "pderiv t"] E simp:`t \<noteq> 0`)
 qed
 
-lemma poly_div_gcd_squarefree':
+lemma poly_div_gcd_squarefree:
   assumes "(p :: ('a::real_normed_field) poly) \<noteq> 0"
   defines "d \<equiv> gcd p (pderiv p)"
   shows "coprime (p div d) (pderiv (p div d))" (is ?A) and
@@ -226,7 +210,7 @@ proof-
   have "?A \<and> (\<forall>x. ?B x)"
   proof (cases "pderiv p = 0")
     case False
-      from poly_div_gcd_squarefree[OF this] show ?thesis
+      from poly_div_gcd_squarefree_aux[OF this] show ?thesis
           unfolding d_def by auto
   next
     case True
@@ -245,78 +229,60 @@ qed
 
 
 
+section {* Limits of polynomials *}
+
+lemma poly_neighbourhood_without_roots:
+  assumes "(p :: real poly) \<noteq> 0"
+  shows "eventually (\<lambda>x. poly p x \<noteq> 0) (at x\<^isub>0)"
+proof (subst eventually_at, subst dist_real_def)
+  {fix \<epsilon> :: real assume "\<epsilon> > 0"
+  have fin: "finite {x. \<bar>x-x\<^isub>0\<bar> < \<epsilon> \<and> x \<noteq> x\<^isub>0 \<and> poly p x = 0}"
+      using poly_roots_finite[OF assms] by simp
+  with `\<epsilon> > 0`have "\<exists>\<delta>>0. \<delta>\<le>\<epsilon> \<and> (\<forall>x. \<bar>x-x\<^isub>0\<bar> < \<delta> \<and> x \<noteq> x\<^isub>0 \<longrightarrow> poly p x \<noteq> 0)"
+  proof (induction "card {x. \<bar>x-x\<^isub>0\<bar> < \<epsilon> \<and> x \<noteq> x\<^isub>0 \<and> poly p x = 0}" 
+         arbitrary: \<epsilon> rule: less_induct)
+  case (less \<epsilon>)
+  let ?A = "{x. \<bar>x - x\<^isub>0\<bar> < \<epsilon> \<and> x \<noteq> x\<^isub>0 \<and> poly p x = 0}"
+  show ?case
+    proof (cases "card ?A")
+    case 0
+      hence "?A = {}" using less by auto
+      thus ?thesis using less(2) by (rule_tac exI[of _ \<epsilon>], auto)
+    next
+    case (Suc _)
+      with less(3) have "{x. \<bar>x - x\<^isub>0\<bar> < \<epsilon> \<and> x \<noteq> x\<^isub>0 \<and> poly p x = 0} \<noteq> {}" by force
+      then obtain x where x_props: "\<bar>x - x\<^isub>0\<bar> < \<epsilon>" "x \<noteq> x\<^isub>0" "poly p x = 0" by blast
+      def \<epsilon>' \<equiv> "\<bar>x - x\<^isub>0\<bar> / 2"
+      have "\<epsilon>' > 0" "\<epsilon>' < \<epsilon>" unfolding \<epsilon>'_def using x_props by simp_all
+      from x_props(1,2) and `\<epsilon> > 0`
+          have "x \<notin> {x'. \<bar>x' - x\<^isub>0\<bar> < \<epsilon>' \<and> x' \<noteq> x\<^isub>0 \<and> poly p x' = 0}" (is "_ \<notin> ?B")
+          by (auto simp: \<epsilon>'_def)
+      moreover from x_props 
+          have "x \<in> {x. \<bar>x - x\<^isub>0\<bar> < \<epsilon> \<and> x \<noteq> x\<^isub>0 \<and> poly p x = 0}" by blast
+      ultimately have "?B \<subset> ?A" by auto
+      hence "card ?B < card ?A" "finite ?B" 
+          by (rule psubset_card_mono[OF less(3)], 
+              blast intro: finite_subset[OF _ less(3)])
+      from less(1)[OF this(1) `\<epsilon>' > 0` this(2)]
+          show ?thesis using `\<epsilon>' < \<epsilon>` by force
+    qed
+  qed}
+  from this[of 1] 
+    show "\<exists>d>0. \<forall>x\<in>UNIV. x \<noteq> x\<^isub>0 \<and> \<bar>x - x\<^isub>0\<bar> < d \<longrightarrow> poly p x \<noteq> 0" by auto
+qed
+
+
 lemma poly_neighbourhood_same_sign:
   assumes "poly p (x\<^isub>0 :: real) \<noteq> 0"
-  obtains \<epsilon> where "\<epsilon> > 0" and "\<forall>x. \<bar>x - x\<^isub>0\<bar> < \<epsilon> \<longrightarrow> sgn (poly p x) = sgn (poly p x\<^isub>0)"
-proof-
-  case goal1
-  let ?S = "{y. \<bar>y - sgn (poly p x\<^isub>0)\<bar> < 1}"
-  {
-    fix x assume "\<bar>x - sgn (poly p x\<^isub>0)\<bar> < 1"
-    hence " 1 - \<bar>x - sgn (poly p x\<^isub>0)\<bar> > 0" and 
-          "\<forall>y. \<bar>y - x\<bar> < 1 - \<bar>x - sgn (poly p x\<^isub>0)\<bar> \<longrightarrow> y \<in> ?S" by auto
-  }
-  hence "open ?S" unfolding open_dist dist_real_def by blast
-  moreover have cont: "isCont (\<lambda>x. sgn (poly p x)) x\<^isub>0"
+  shows "eventually (\<lambda>x. sgn (poly p x) = sgn (poly p x\<^isub>0)) (at x\<^isub>0)"
+proof (rule eventually_mono)
+  have cont: "isCont (\<lambda>x. sgn (poly p x)) x\<^isub>0"
       by (rule isCont_sgn, rule poly_isCont, rule assms)
-  moreover have "sgn (poly p x\<^isub>0) \<in> ?S" by simp
-  ultimately obtain \<delta> where "\<delta> > 0" and 
-                 "\<forall>x. x \<noteq> x\<^isub>0 \<and> \<bar>x - x\<^isub>0\<bar> < \<delta> \<longrightarrow> sgn (poly p x) \<in> ?S"
-      unfolding isCont_def tendsto_def eventually_at dist_real_def by fast
-  hence A: "\<forall>x. \<bar>x - x\<^isub>0\<bar> < \<delta> \<longrightarrow> sgn (poly p x) \<in> ?S"
-      by (clarify, rename_tac x, case_tac "x = x\<^isub>0", simp_all)
-  {
-    fix x assume "\<bar>x - x\<^isub>0\<bar> < \<delta>"
-    with A have "sgn (poly p x) \<in> ?S" by blast
-    hence "sgn (poly p x) = sgn (poly p x\<^isub>0)"
-      apply (cases "sgn (poly p x)" rule: sgn_real_cases)
-      apply (cases "sgn (poly p x\<^isub>0)" rule: sgn_real_cases, simp_all) []
-      apply (cases "sgn (poly p x\<^isub>0)" rule: sgn_real_cases, simp_all) []
-      apply (cases "sgn (poly p x\<^isub>0)" rule: sgn_real_cases, simp_all) []
-      done
-  }
-  hence "\<forall>x. \<bar>x - x\<^isub>0\<bar> < \<delta> \<longrightarrow> sgn (poly p x) = sgn (poly p x\<^isub>0)" by blast
-  from this and `\<delta> > 0` show ?thesis using goal1 by blast
-qed
+  thus "eventually (\<lambda>x. \<bar>sgn (poly p x) - sgn (poly p x\<^isub>0)\<bar> < 1) (at x\<^isub>0)"
+      by (auto simp: isCont_def tendsto_iff dist_real_def)
+qed (auto simp add: sgn_real_def)
 
 
-lemma polys_neighbourhood_same_sign:
-  assumes "finite ps" and "\<forall>p\<in>ps. poly p x\<^isub>0 \<noteq> (0::real)"
-  obtains \<epsilon> where "\<epsilon> > 0" and 
-      "\<forall>p\<in>ps. \<forall>x. \<bar>x - x\<^isub>0\<bar> < \<epsilon> \<longrightarrow> sgn (poly p x) = sgn (poly p x\<^isub>0)"
-proof-
-  case goal1
-  have "\<exists>\<epsilon>>0. \<forall>p\<in>ps. \<forall>x. \<bar>x - x\<^isub>0\<bar> < \<epsilon> \<longrightarrow> sgn (poly p x) = sgn (poly p x\<^isub>0)"
-      using assms(2)
-  proof (induction rule: finite_subset_induct[OF assms(1), where A = UNIV], simp)
-    case goal1 show ?case by (rule exI[of _ 42], simp)
-  next
-    case (goal2 p ps)
-      then obtain \<epsilon> where "\<epsilon> > 0"
-          "\<forall>p\<in>ps. \<forall>x. \<bar>x - x\<^isub>0\<bar> < \<epsilon> \<longrightarrow> sgn (poly p x) = sgn (poly p x\<^isub>0)" by blast
-      hence \<epsilon>_props: "\<And>p x. \<lbrakk>p \<in> ps; \<bar>x - x\<^isub>0\<bar> < \<epsilon>\<rbrakk> \<Longrightarrow> 
-                          sgn (poly p x) = sgn (poly p x\<^isub>0)" by blast
-      from goal2 have "poly p x\<^isub>0 \<noteq> 0" by simp
-      from poly_neighbourhood_same_sign[OF this] guess \<epsilon>' .
-      hence \<epsilon>'_props: "\<And>x. \<bar>x - x\<^isub>0\<bar> < \<epsilon>' \<Longrightarrow> sgn (poly p x) = sgn (poly p x\<^isub>0)"
-          by blast
-      show ?case 
-          apply (intro exI[of _ "min \<epsilon> \<epsilon>'"])
-          apply (intro conjI, simp add: `\<epsilon> > 0` `\<epsilon>' > 0`)
-          apply (clarify, rename_tac q x, case_tac "p = q")
-          apply (clarify, intro \<epsilon>'_props, simp)
-          apply (simp, intro \<epsilon>_props, simp_all)
-          done
-  qed
-  thus thesis using goal1 by blast
-qed
-
-
-definition poly_inf where 
-  "poly_inf p \<equiv> sgn (coeff p (degree p))"
-definition poly_neg_inf where 
-  "poly_neg_inf p \<equiv> if even (degree p) then sgn (coeff p (degree p))
-                                       else -sgn (coeff p (degree p))"
 
 lemma poly_roots_bounds:
   assumes "p \<noteq> 0" 
@@ -347,65 +313,21 @@ proof
   from l_props have "\<And>x. poly p x = 0 \<Longrightarrow> x > l" by (metis not_le)
   moreover from u_props have "\<And>x. poly p x = 0 \<Longrightarrow> x \<le> u" by (metis linear)
   ultimately show "{x. x > l \<and> x \<le> u \<and> poly p x = 0} = ?roots" by auto
-  
+
   {
-    fix x assume A: "x < l"
-    from A and l_props have [simp]: "sgn (poly p x) \<noteq> 0"
-        by (force simp: sgn_zero_iff)
-    assume B: "sgn (poly p x) \<noteq> sgn (poly p l)"
-    hence [simp]: "sgn (poly p l) = -sgn (poly p x)"
-      apply (cases "poly p x" rule: sgn_real_cases)
-      apply (cases "poly p l" rule: sgn_real_cases, 
-             simp_all add: sgn_zero_iff) []
-      apply simp
-      apply (cases "poly p l" rule: sgn_real_cases, 
-             simp_all add: sgn_zero_iff) []
-      done
-    have False
-    proof (cases "poly p x" rule: sgn_real_cases)
-      case goal1
-        hence "sgn (poly p l) = 1" by simp
-        with goal1 have "poly p x < 0" "poly p l > 0"
-            by (metis minus_one sgn_1_neg, metis sgn_1_pos) 
-        from poly_IVT_pos[OF A this] l_props show False by force
-    next
-      case goal3
-        hence "sgn (poly p l) = -1" by simp
-        with goal3 have "poly p x > 0" "poly p l < 0"
-            by (metis sgn_1_pos, metis minus_one sgn_1_neg) 
-        from poly_IVT_neg[OF A this] l_props show False by force
-    qed simp
+    fix x assume A: "x < l" "sgn (poly p x) \<noteq> sgn (poly p l)"
+    with poly_IVT_pos[OF A(1), of p] poly_IVT_neg[OF A(1), of p] A(2) 
+        have False by (auto split: split_if_asm
+                         simp: sgn_real_def l_props not_less less_eq_real_def)
   }
   thus "\<And>x. x \<le> l \<Longrightarrow> sgn (poly p x) = sgn (poly p l)"
       by (case_tac "x = l", auto simp: less_eq_real_def)
       
   {
-    fix x assume A: "x > u"
-    from A and u_props have [simp]: "sgn (poly p x) \<noteq> 0" 
-        by (force simp: sgn_zero_iff)
-    assume B: "sgn (poly p x) \<noteq> sgn (poly p u)"
-    hence [simp]: "sgn (poly p u) = -sgn (poly p x)"
-      apply (cases "poly p x" rule: sgn_real_cases)
-      apply (cases "poly p u" rule: sgn_real_cases, 
-             simp_all add: sgn_zero_iff) []
-      apply simp
-      apply (cases "poly p u" rule: sgn_real_cases, 
-             simp_all add: sgn_zero_iff) []
-      done
-    have False
-    proof (cases "poly p x" rule: sgn_real_cases)
-      case goal1
-        hence "sgn (poly p u) = 1" by simp
-        with goal1 have "poly p u > 0" "poly p x < 0"
-            by (metis sgn_1_pos, metis minus_one sgn_1_neg) 
-        from poly_IVT_neg[OF A this] u_props show False by force
-    next
-      case goal3
-        hence "sgn (poly p u) = -1" by simp
-        with goal3 have "poly p u < 0" "poly p x > 0"
-            by (metis minus_one sgn_1_neg, metis sgn_1_pos) 
-        from poly_IVT_pos[OF A this] u_props show False by force
-    qed simp
+    fix x assume A: "x > u" "sgn (poly p x) \<noteq> sgn (poly p u)"
+    with u_props poly_IVT_neg[OF A(1), of p] poly_IVT_pos[OF A(1), of p] A(2) 
+        have False by (auto split: split_if_asm
+                         simp: sgn_real_def l_props not_less less_eq_real_def)
   }
   thus "\<And>x. x \<ge> u \<Longrightarrow> sgn (poly p x) = sgn (poly p u)"
       by (case_tac "x = u", auto simp: less_eq_real_def)
@@ -413,26 +335,12 @@ qed
 
 
 
-lemma poly_altdef: "poly p (x::real) = (\<Sum>i\<le>degree p. coeff p i * x ^ i)"
-proof (induction p rule: pCons_induct)
-  case (pCons a p)
-    show ?case
-    proof (cases "p = 0")
-      case False
-      let ?p' = "pCons a p"
-      note poly_pCons[of a p x]
-      also note pCons.IH
-      also have "a + x * (\<Sum>i\<le>degree p. coeff p i * x ^ i) = 
-                 coeff ?p' 0 * x^0 + (\<Sum>i\<le>degree p. coeff ?p' (Suc i) * x^Suc i)" 
-          by (simp add: field_simps setsum_right_distrib coeff_pCons)
-      also note setsum_atMost_Suc_shift[symmetric]
-      also note degree_pCons_eq[OF `p \<noteq> 0`, of a, symmetric]
-      finally show ?thesis .
-   qed simp
-qed simp
-  
-
-
+definition poly_inf where 
+  "poly_inf p \<equiv> sgn (coeff p (degree p))"
+definition poly_neg_inf where 
+  "poly_neg_inf p \<equiv> if even (degree p) then sgn (coeff p (degree p))
+                                       else -sgn (coeff p (degree p))"
+ 
 lemma poly_neq_0_at_infinity:
   assumes "(p :: real poly) \<noteq> 0"
   shows "eventually (\<lambda>x. poly p x \<noteq> 0) at_infinity"
@@ -525,6 +433,8 @@ proof-
   note filterlim_cong[OF refl refl this]
   finally show ?thesis .
 qed
+
+
 
 lemma poly_at_bot_at_top:
   fixes p :: "real poly"
@@ -755,6 +665,11 @@ next
     qed
 qed
 
+
+
+
+
+section {* Sturm chain-specific stuff *}
 
 lemma polys_inf_sign_thresholds:
   assumes "finite (ps :: real poly set)"

@@ -14,11 +14,9 @@ proof-
 qed
 
 lemma sgn_real_cases[case_names neg 0 pos]:
-  "\<lbrakk>sgn (x :: real) = -1 \<Longrightarrow> P; sgn x = 0 \<Longrightarrow> P; sgn x = 1 \<Longrightarrow> P\<rbrakk> \<Longrightarrow> P"
+  "\<lbrakk>sgn (x :: real) = -1 \<Longrightarrow> x < 0 \<Longrightarrow> P; 
+    sgn x = 0 \<Longrightarrow> x = 0 \<Longrightarrow> P;
+    sgn x = 1 \<Longrightarrow> x > 0 \<Longrightarrow> P\<rbrakk> \<Longrightarrow> P"
   unfolding sgn_real_def by (cases "x = 0", simp, cases "x > 0", simp_all)
-
-
-
-
 
 end
