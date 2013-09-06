@@ -866,49 +866,6 @@ proof-
 qed
 
 
-(* TODO: Move *)
-lemma poly_diff_sgn_imp_root:
-  assumes "a < b" and "sgn (poly p a) \<noteq> sgn (poly p (b::real))"
-  shows "\<exists>x. a \<le> x \<and> x \<le> b \<and> poly p x = 0"
-proof (cases "poly p a = 0 \<or> poly p b = 0")
-  case True
-    thus ?thesis using assms(1) 
-        by (elim disjE, rule_tac exI[of _ a], simp,
-                        rule_tac exI[of _ b], simp)
-next
-  case False
-    hence [simp]: "poly p a \<noteq> 0" "poly p b \<noteq> 0" by simp_all
-    show ?thesis
-    proof (cases "poly p a < 0")
-      case True
-        hence "sgn (poly p a) = -1" by simp
-        with assms True have "poly p b > 0"
-            by (auto simp: sgn_real_def split: split_if_asm)
-        from poly_IVT_pos[OF `a < b` True this] guess x ..
-        thus ?thesis by (intro exI[of _ x], simp)
-    next
-      case False
-        hence "poly p a > 0" by (simp add: not_less less_eq_real_def)
-        hence "sgn (poly p a) = 1"  by simp
-        with assms False have "poly p b < 0"
-            by (auto simp: sgn_real_def not_less 
-                           less_eq_real_def split: split_if_asm)
-        from poly_IVT_neg[OF `a < b` `poly p a > 0` this] guess x ..
-        thus ?thesis by (intro exI[of _ x], simp)
-    qed
-qed
-
-lemma no_roots_imp_same_sign:
-  assumes "a < b" "\<forall>x. a \<le> x \<and> x \<le> b \<longrightarrow> poly p x \<noteq> (0::real)"
-  shows "sgn (poly p a) = sgn (poly p b)"
-proof (rule ccontr)
-  assume "sgn (poly p a) \<noteq> sgn (poly p b)"
-  from  poly_diff_sgn_imp_root[OF `a < b` this] guess x ..
-  thus False using assms(2) by auto
-qed
-  
-  
-
 lemma sturm_firsttwo_signs_aux:
   assumes "(p :: real poly) \<noteq> 0" "q \<noteq> 0"
   assumes q_pderiv: 
@@ -945,7 +902,7 @@ proof-
         moreover from \<xi>_props \<epsilon>_props `\<bar>x - x\<^sub>0\<bar> < \<epsilon>` 
             have "\<forall>t. \<xi> \<le> t \<and> t \<le> x \<longrightarrow> poly q t \<noteq> 0" by auto
         hence "sgn (poly q \<xi>) = sgn (poly q x)" using \<xi>_props \<epsilon>_props
-            by (intro no_roots_imp_same_sign, simp_all)
+            by (intro no_roots_inbetween_imp_same_sign, simp_all)
         ultimately show ?thesis using True `x \<noteq> x\<^sub>0` \<epsilon>_props \<xi>_props
             by (auto simp: sgn_mult sqr_pos)
     next
@@ -962,7 +919,7 @@ proof-
         moreover from \<xi>_props \<epsilon>_props `\<bar>x - x\<^sub>0\<bar> < \<epsilon>` 
             have "\<forall>t. x \<le> t \<and> t \<le> \<xi> \<longrightarrow> poly q t \<noteq> 0" by auto
         hence "sgn (poly q \<xi>) = sgn (poly q x)" using \<xi>_props \<epsilon>_props
-            by (rule_tac sym, intro no_roots_imp_same_sign, simp_all)
+            by (rule_tac sym, intro no_roots_inbetween_imp_same_sign, simp_all)
         ultimately show ?thesis using False `x \<noteq> x\<^sub>0` 
             by (auto simp: sgn_mult sqr_pos) 
     qed
@@ -1090,21 +1047,6 @@ definition sturm_squarefree' where
 "sturm_squarefree' p = (let d = gcd p (pderiv p)
                          in map (\<lambda>p'. p' div d) (sturm p))"
 
-
-(* TODO: Move *)
-lemma coprime_imp_no_common_roots:
-  assumes "coprime p q"
-  shows "\<And>x. \<not>(poly p x = 0 \<and> poly q x = 0)"
-proof(clarify)
-  fix x assume "poly p x = 0" "poly q x = 0"
-  hence "[:-x,1:] dvd p" "[:-x,1:] dvd q" 
-      by (simp_all add: poly_eq_0_iff_dvd)
-  hence "[:-x,1:] dvd gcd p q" by simp
-  hence "poly (gcd p q) x = 0" by (simp add: poly_eq_0_iff_dvd)
-  moreover from assms have "poly (gcd p q) x = 1" by simp
-  ultimately show False by simp
-qed
-
 lemma sturm_squarefree'_adjacent_root_propagate_left:
   assumes "p \<noteq> 0"
   assumes "i < length (sturm_squarefree' (p :: real poly)) - 1"
@@ -1206,22 +1148,6 @@ proof-
   ultimately show ?thesis using r_x by simp
 qed
 
-lemma poly_lhopital:
-  assumes "poly p (x::real) = 0" "poly q x = 0" "q \<noteq> 0"
-  assumes "(\<lambda>x. poly (pderiv p) x / poly (pderiv q) x) -- x --> y"
-  shows "(\<lambda>x. poly p x / poly q x) -- x --> y"
-using assms
-proof (rule_tac lhopital)
-  have "isCont (poly p) x" "isCont (poly q) x" by simp_all
-  with assms(1,2) show "poly p -- x --> 0" "poly q -- x --> 0" 
-       by (simp_all add: isCont_def)
-  from `q \<noteq> 0` and `poly q x = 0` have "pderiv q \<noteq> 0"
-      by (auto dest: pderiv_iszero)
-  from poly_neighbourhood_without_roots[OF this]
-      show "eventually (\<lambda>x. poly (pderiv q) x \<noteq> 0) (at x)" .
-qed (auto intro: poly_DERIV poly_neighbourhood_without_roots)
-
-
 
 lemma sturm_seq_squarefree':
   assumes "(p :: real poly) \<noteq> 0"
@@ -1271,37 +1197,35 @@ proof
   have [simp]: "?ps' ! 0 \<noteq> 0" using squarefree
       by (auto simp: A rsquarefree_def)
 
-  {
-    fix x\<^sub>0 :: real
-    assume "poly ?p' x\<^sub>0 = 0"
-    hence "poly p x\<^sub>0 = 0" using poly_div_gcd_squarefree(2)[OF `p \<noteq> 0`] 
-        unfolding d_def by simp
-    hence "pderiv p \<noteq> 0" using `p \<noteq> 0` by (auto dest: pderiv_iszero)
-    with `p \<noteq> 0` `poly p x\<^sub>0 = 0`
-        have A: "eventually (\<lambda>x. sgn (poly (p * pderiv p) x) = 
-                                (if x\<^sub>0 < x then 1 else -1)) (at x\<^sub>0)"
-        by (intro sturm_firsttwo_signs_aux, simp_all)
-    note ev = eventually_conj[OF A poly_neighbourhood_without_roots[OF `d \<noteq> 0`]]
+  fix x\<^sub>0 :: real
+  assume "poly ?p' x\<^sub>0 = 0"
+  hence "poly p x\<^sub>0 = 0" using poly_div_gcd_squarefree(2)[OF `p \<noteq> 0`] 
+      unfolding d_def by simp
+  hence "pderiv p \<noteq> 0" using `p \<noteq> 0` by (auto dest: pderiv_iszero)
+  with `p \<noteq> 0` `poly p x\<^sub>0 = 0`
+      have A: "eventually (\<lambda>x. sgn (poly (p * pderiv p) x) = 
+                              (if x\<^sub>0 < x then 1 else -1)) (at x\<^sub>0)"
+      by (intro sturm_firsttwo_signs_aux, simp_all)
+  note ev = eventually_conj[OF A poly_neighbourhood_without_roots[OF `d \<noteq> 0`]]
 
-    show "eventually (\<lambda>x. sgn (poly (p div d * sturm_squarefree' p ! 1) x) =
-                          (if x\<^sub>0 < x then 1 else -1)) (at x\<^sub>0)"
-    proof (rule eventually_mono[OF _ ev], clarify)
-        have [intro]:
-            "\<And>a (b::real). b \<noteq> 0 \<Longrightarrow> a < 0 \<Longrightarrow> a / (b * b) < 0"
-            "\<And>a (b::real). b \<noteq> 0 \<Longrightarrow> a > 0 \<Longrightarrow> a / (b * b) > 0"
-            by ((case_tac "b > 0", 
-                auto simp: mult_pos_pos mult_neg_neg field_simps) [])+
-      case (goal1 x)
-        hence  [simp]: "poly d x * poly d x > 0" 
-             by (cases "poly d x > 0", auto simp: mult_pos_pos mult_neg_neg)
-        from poly_div_gcd_squarefree_aux(2)[OF `pderiv p \<noteq> 0`]
-            have "poly (p div d) x = 0 \<longleftrightarrow> poly p x = 0" by (simp add: d_def)
-        moreover have "d dvd p" "d dvd pderiv p" unfolding d_def by simp_all
-        ultimately show ?case using goal1
-            by (auto simp: sgn_real_def poly_div not_less[symmetric] 
-                           zero_less_divide_iff split: split_if_asm)
-    qed
-  }
+  show "eventually (\<lambda>x. sgn (poly (p div d * sturm_squarefree' p ! 1) x) =
+                        (if x\<^sub>0 < x then 1 else -1)) (at x\<^sub>0)"
+  proof (rule eventually_mono[OF _ ev], clarify)
+      have [intro]:
+          "\<And>a (b::real). b \<noteq> 0 \<Longrightarrow> a < 0 \<Longrightarrow> a / (b * b) < 0"
+          "\<And>a (b::real). b \<noteq> 0 \<Longrightarrow> a > 0 \<Longrightarrow> a / (b * b) > 0"
+          by ((case_tac "b > 0", 
+              auto simp: mult_pos_pos mult_neg_neg field_simps) [])+
+    case (goal1 x)
+      hence  [simp]: "poly d x * poly d x > 0" 
+           by (cases "poly d x > 0", auto simp: mult_pos_pos mult_neg_neg)
+      from poly_div_gcd_squarefree_aux(2)[OF `pderiv p \<noteq> 0`]
+          have "poly (p div d) x = 0 \<longleftrightarrow> poly p x = 0" by (simp add: d_def)
+      moreover have "d dvd p" "d dvd pderiv p" unfolding d_def by simp_all
+      ultimately show ?case using goal1
+          by (auto simp: sgn_real_def poly_div not_less[symmetric] 
+                         zero_less_divide_iff split: split_if_asm)
+  qed
 qed
   
 

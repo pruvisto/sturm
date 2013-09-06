@@ -51,6 +51,19 @@ qed
 
 section {* Divisibility of polynomials *}
 
+lemma coprime_imp_no_common_roots:
+  assumes "coprime p q"
+  shows "\<And>x. \<not>(poly p x = 0 \<and> poly q x = 0)"
+proof(clarify)
+  fix x assume "poly p x = 0" "poly q x = 0"
+  hence "[:-x,1:] dvd p" "[:-x,1:] dvd q" 
+      by (simp_all add: poly_eq_0_iff_dvd)
+  hence "[:-x,1:] dvd gcd p q" by simp
+  hence "poly (gcd p q) x = 0" by (simp add: poly_eq_0_iff_dvd)
+  moreover from assms have "poly (gcd p q) x = 1" by simp
+  ultimately show False by simp
+qed
+
 lemma div_gcd_coprime_poly:
   assumes "(p :: ('a::field) poly) \<noteq> 0 \<or> q \<noteq> 0" 
   defines [simp]: "d \<equiv> gcd p q"
@@ -228,6 +241,49 @@ qed
 
 
 
+section {* Sign changes of a polynomial *}
+
+lemma poly_different_sign_imp_root:
+  assumes "a < b" and "sgn (poly p a) \<noteq> sgn (poly p (b::real))"
+  shows "\<exists>x. a \<le> x \<and> x \<le> b \<and> poly p x = 0"
+proof (cases "poly p a = 0 \<or> poly p b = 0")
+  case True
+    thus ?thesis using assms(1) 
+        by (elim disjE, rule_tac exI[of _ a], simp,
+                        rule_tac exI[of _ b], simp)
+next
+  case False
+    hence [simp]: "poly p a \<noteq> 0" "poly p b \<noteq> 0" by simp_all
+    show ?thesis
+    proof (cases "poly p a < 0")
+      case True
+        hence "sgn (poly p a) = -1" by simp
+        with assms True have "poly p b > 0"
+            by (auto simp: sgn_real_def split: split_if_asm)
+        from poly_IVT_pos[OF `a < b` True this] guess x ..
+        thus ?thesis by (intro exI[of _ x], simp)
+    next
+      case False
+        hence "poly p a > 0" by (simp add: not_less less_eq_real_def)
+        hence "sgn (poly p a) = 1"  by simp
+        with assms False have "poly p b < 0"
+            by (auto simp: sgn_real_def not_less 
+                           less_eq_real_def split: split_if_asm)
+        from poly_IVT_neg[OF `a < b` `poly p a > 0` this] guess x ..
+        thus ?thesis by (intro exI[of _ x], simp)
+    qed
+qed
+
+lemma no_roots_inbetween_imp_same_sign:
+  assumes "a < b" "\<forall>x. a \<le> x \<and> x \<le> b \<longrightarrow> poly p x \<noteq> (0::real)"
+  shows "sgn (poly p a) = sgn (poly p b)"
+proof (rule ccontr)
+  assume "sgn (poly p a) \<noteq> sgn (poly p b)"
+  from  poly_different_sign_imp_root[OF `a < b` this] guess x ..
+  thus False using assms(2) by auto
+qed
+
+
 
 section {* Limits of polynomials *}
 
@@ -282,6 +338,20 @@ proof (rule eventually_mono)
       by (auto simp: isCont_def tendsto_iff dist_real_def)
 qed (auto simp add: sgn_real_def)
 
+lemma poly_lhopital:
+  assumes "poly p (x::real) = 0" "poly q x = 0" "q \<noteq> 0"
+  assumes "(\<lambda>x. poly (pderiv p) x / poly (pderiv q) x) -- x --> y"
+  shows "(\<lambda>x. poly p x / poly q x) -- x --> y"
+using assms
+proof (rule_tac lhopital)
+  have "isCont (poly p) x" "isCont (poly q) x" by simp_all
+  with assms(1,2) show "poly p -- x --> 0" "poly q -- x --> 0" 
+       by (simp_all add: isCont_def)
+  from `q \<noteq> 0` and `poly q x = 0` have "pderiv q \<noteq> 0"
+      by (auto dest: pderiv_iszero)
+  from poly_neighbourhood_without_roots[OF this]
+      show "eventually (\<lambda>x. poly (pderiv q) x \<noteq> 0) (at x)" .
+qed (auto intro: poly_DERIV poly_neighbourhood_without_roots)
 
 
 lemma poly_roots_bounds:
