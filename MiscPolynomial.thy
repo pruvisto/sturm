@@ -233,16 +233,16 @@ section {* Limits of polynomials *}
 
 lemma poly_neighbourhood_without_roots:
   assumes "(p :: real poly) \<noteq> 0"
-  shows "eventually (\<lambda>x. poly p x \<noteq> 0) (at x\<^isub>0)"
+  shows "eventually (\<lambda>x. poly p x \<noteq> 0) (at x\<^sub>0)"
 proof (subst eventually_at, subst dist_real_def)
   {fix \<epsilon> :: real assume "\<epsilon> > 0"
-  have fin: "finite {x. \<bar>x-x\<^isub>0\<bar> < \<epsilon> \<and> x \<noteq> x\<^isub>0 \<and> poly p x = 0}"
+  have fin: "finite {x. \<bar>x-x\<^sub>0\<bar> < \<epsilon> \<and> x \<noteq> x\<^sub>0 \<and> poly p x = 0}"
       using poly_roots_finite[OF assms] by simp
-  with `\<epsilon> > 0`have "\<exists>\<delta>>0. \<delta>\<le>\<epsilon> \<and> (\<forall>x. \<bar>x-x\<^isub>0\<bar> < \<delta> \<and> x \<noteq> x\<^isub>0 \<longrightarrow> poly p x \<noteq> 0)"
-  proof (induction "card {x. \<bar>x-x\<^isub>0\<bar> < \<epsilon> \<and> x \<noteq> x\<^isub>0 \<and> poly p x = 0}" 
+  with `\<epsilon> > 0`have "\<exists>\<delta>>0. \<delta>\<le>\<epsilon> \<and> (\<forall>x. \<bar>x-x\<^sub>0\<bar> < \<delta> \<and> x \<noteq> x\<^sub>0 \<longrightarrow> poly p x \<noteq> 0)"
+  proof (induction "card {x. \<bar>x-x\<^sub>0\<bar> < \<epsilon> \<and> x \<noteq> x\<^sub>0 \<and> poly p x = 0}" 
          arbitrary: \<epsilon> rule: less_induct)
   case (less \<epsilon>)
-  let ?A = "{x. \<bar>x - x\<^isub>0\<bar> < \<epsilon> \<and> x \<noteq> x\<^isub>0 \<and> poly p x = 0}"
+  let ?A = "{x. \<bar>x - x\<^sub>0\<bar> < \<epsilon> \<and> x \<noteq> x\<^sub>0 \<and> poly p x = 0}"
   show ?case
     proof (cases "card ?A")
     case 0
@@ -250,15 +250,15 @@ proof (subst eventually_at, subst dist_real_def)
       thus ?thesis using less(2) by (rule_tac exI[of _ \<epsilon>], auto)
     next
     case (Suc _)
-      with less(3) have "{x. \<bar>x - x\<^isub>0\<bar> < \<epsilon> \<and> x \<noteq> x\<^isub>0 \<and> poly p x = 0} \<noteq> {}" by force
-      then obtain x where x_props: "\<bar>x - x\<^isub>0\<bar> < \<epsilon>" "x \<noteq> x\<^isub>0" "poly p x = 0" by blast
-      def \<epsilon>' \<equiv> "\<bar>x - x\<^isub>0\<bar> / 2"
+      with less(3) have "{x. \<bar>x - x\<^sub>0\<bar> < \<epsilon> \<and> x \<noteq> x\<^sub>0 \<and> poly p x = 0} \<noteq> {}" by force
+      then obtain x where x_props: "\<bar>x - x\<^sub>0\<bar> < \<epsilon>" "x \<noteq> x\<^sub>0" "poly p x = 0" by blast
+      def \<epsilon>' \<equiv> "\<bar>x - x\<^sub>0\<bar> / 2"
       have "\<epsilon>' > 0" "\<epsilon>' < \<epsilon>" unfolding \<epsilon>'_def using x_props by simp_all
       from x_props(1,2) and `\<epsilon> > 0`
-          have "x \<notin> {x'. \<bar>x' - x\<^isub>0\<bar> < \<epsilon>' \<and> x' \<noteq> x\<^isub>0 \<and> poly p x' = 0}" (is "_ \<notin> ?B")
+          have "x \<notin> {x'. \<bar>x' - x\<^sub>0\<bar> < \<epsilon>' \<and> x' \<noteq> x\<^sub>0 \<and> poly p x' = 0}" (is "_ \<notin> ?B")
           by (auto simp: \<epsilon>'_def)
       moreover from x_props 
-          have "x \<in> {x. \<bar>x - x\<^isub>0\<bar> < \<epsilon> \<and> x \<noteq> x\<^isub>0 \<and> poly p x = 0}" by blast
+          have "x \<in> {x. \<bar>x - x\<^sub>0\<bar> < \<epsilon> \<and> x \<noteq> x\<^sub>0 \<and> poly p x = 0}" by blast
       ultimately have "?B \<subset> ?A" by auto
       hence "card ?B < card ?A" "finite ?B" 
           by (rule psubset_card_mono[OF less(3)], 
@@ -268,17 +268,17 @@ proof (subst eventually_at, subst dist_real_def)
     qed
   qed}
   from this[of 1] 
-    show "\<exists>d>0. \<forall>x\<in>UNIV. x \<noteq> x\<^isub>0 \<and> \<bar>x - x\<^isub>0\<bar> < d \<longrightarrow> poly p x \<noteq> 0" by auto
+    show "\<exists>d>0. \<forall>x\<in>UNIV. x \<noteq> x\<^sub>0 \<and> \<bar>x - x\<^sub>0\<bar> < d \<longrightarrow> poly p x \<noteq> 0" by auto
 qed
 
 
 lemma poly_neighbourhood_same_sign:
-  assumes "poly p (x\<^isub>0 :: real) \<noteq> 0"
-  shows "eventually (\<lambda>x. sgn (poly p x) = sgn (poly p x\<^isub>0)) (at x\<^isub>0)"
+  assumes "poly p (x\<^sub>0 :: real) \<noteq> 0"
+  shows "eventually (\<lambda>x. sgn (poly p x) = sgn (poly p x\<^sub>0)) (at x\<^sub>0)"
 proof (rule eventually_mono)
-  have cont: "isCont (\<lambda>x. sgn (poly p x)) x\<^isub>0"
+  have cont: "isCont (\<lambda>x. sgn (poly p x)) x\<^sub>0"
       by (rule isCont_sgn, rule poly_isCont, rule assms)
-  thus "eventually (\<lambda>x. \<bar>sgn (poly p x) - sgn (poly p x\<^isub>0)\<bar> < 1) (at x\<^isub>0)"
+  thus "eventually (\<lambda>x. \<bar>sgn (poly p x) - sgn (poly p x\<^sub>0)\<bar> < 1) (at x\<^sub>0)"
       by (auto simp: isCont_def tendsto_iff dist_real_def)
 qed (auto simp add: sgn_real_def)
 
@@ -382,14 +382,14 @@ proof-
   have g_limit: "LIM x at_top. ?g x :> at_top" 
   proof (simp only: filterlim_at_top eventually_at_top_linorder, clarify)
     fix b :: real
-    let ?x\<^isub>0 = "max b 1"
-    show "\<exists>x\<^isub>0. \<forall>x\<ge>x\<^isub>0. x ^ degree p \<ge> b"
-    proof (rule exI[of _ ?x\<^isub>0], clarify)
+    let ?x\<^sub>0 = "max b 1"
+    show "\<exists>x\<^sub>0. \<forall>x\<ge>x\<^sub>0. x ^ degree p \<ge> b"
+    proof (rule exI[of _ ?x\<^sub>0], clarify)
       fix x assume "x \<ge> max b 1"
-      have "b \<le> ?x\<^isub>0" by simp
-      also from power_increasing[OF assms(1), of ?x\<^isub>0] 
-          have "... \<le> ?x\<^isub>0 ^ ?n" by simp
-      also from power_mono[OF `x \<ge> ?x\<^isub>0`] have "... \<le> x ^ ?n" by simp
+      have "b \<le> ?x\<^sub>0" by simp
+      also from power_increasing[OF assms(1), of ?x\<^sub>0] 
+          have "... \<le> ?x\<^sub>0 ^ ?n" by simp
+      also from power_mono[OF `x \<ge> ?x\<^sub>0`] have "... \<le> x ^ ?n" by simp
       finally show "b \<le> x ^ ?n" .
     qed
   qed
@@ -463,22 +463,22 @@ next
     proof (cases "?lc > 0")
       case True
         from poly_at_top_at_top[OF deg this]
-          obtain x\<^isub>0 where "\<And>x. x \<ge> x\<^isub>0 \<Longrightarrow> poly p x \<ge> 1"
+          obtain x\<^sub>0 where "\<And>x. x \<ge> x\<^sub>0 \<Longrightarrow> poly p x \<ge> 1"
               by (fastforce simp: filterlim_at_top 
                       eventually_at_top_linorder less_eq_real_def) 
-        hence "\<And>x. x \<ge> x\<^isub>0 \<Longrightarrow> sgn (poly p x) = 1" by force
+        hence "\<And>x. x \<ge> x\<^sub>0 \<Longrightarrow> sgn (poly p x) = 1" by force
         thus ?thesis by (simp only: eventually_at_top_linorder poly_inf_def, 
-                             intro exI[of _ x\<^isub>0], simp add: True)
+                             intro exI[of _ x\<^sub>0], simp add: True)
     next
       case False
         hence "?lc < 0" using `?lc \<noteq> 0` by linarith
         from poly_at_bot_at_top[OF deg this]
-          obtain x\<^isub>0 where "\<And>x. x \<ge> x\<^isub>0 \<Longrightarrow> poly p x \<le> -1"
+          obtain x\<^sub>0 where "\<And>x. x \<ge> x\<^sub>0 \<Longrightarrow> poly p x \<le> -1"
               by (fastforce simp: filterlim_at_bot 
                       eventually_at_top_linorder less_eq_real_def) 
-        hence "\<And>x. x \<ge> x\<^isub>0 \<Longrightarrow> sgn (poly p x) = -1" by force
+        hence "\<And>x. x \<ge> x\<^sub>0 \<Longrightarrow> sgn (poly p x) = -1" by force
         thus ?thesis by (simp only: eventually_at_top_linorder poly_inf_def, 
-                             intro exI[of _ x\<^isub>0], simp add: `?lc < 0`)
+                             intro exI[of _ x\<^sub>0], simp add: `?lc < 0`)
     qed
 qed
 
@@ -505,17 +505,17 @@ proof-
          simp_all add: filterlim_at_top filterlim_at_bot 
                         eventually_at_bot_linorder)
     case True
-      thus "\<forall>b::real. \<exists>x\<^isub>0. \<forall>x\<le>x\<^isub>0. b \<le> x ^ ?n"
+      thus "\<forall>b::real. \<exists>x\<^sub>0. \<forall>x\<le>x\<^sub>0. b \<le> x ^ ?n"
       proof (clarify)
         fix b :: real
-        let ?x\<^isub>0 = "-max b 1"
-        show "\<exists>x\<^isub>0. \<forall>x\<le>x\<^isub>0. b \<le> x ^ ?n"
-        proof (rule exI[of _ ?x\<^isub>0], clarify)
-          fix x assume "x \<le> ?x\<^isub>0"
+        let ?x\<^sub>0 = "-max b 1"
+        show "\<exists>x\<^sub>0. \<forall>x\<le>x\<^sub>0. b \<le> x ^ ?n"
+        proof (rule exI[of _ ?x\<^sub>0], clarify)
+          fix x assume "x \<le> ?x\<^sub>0"
           have "b \<le> max b 1" by simp
           also from power_increasing[OF assms(1), of "max b 1"] 
               have "... \<le> max b 1 ^ ?n" by simp
-          also from `x \<le> ?x\<^isub>0` have "\<bar>max b 1\<bar> \<le> \<bar>x\<bar>" by force
+          also from `x \<le> ?x\<^sub>0` have "\<bar>max b 1\<bar> \<le> \<bar>x\<bar>" by force
           from power_mono_even[OF True this]
               have "max b 1 ^ ?n \<le> x ^ ?n" .
           finally show "b \<le> x ^ ?n" .
@@ -523,17 +523,17 @@ proof-
       qed
   next
     case False
-      thus "\<forall>b::real. \<exists>x\<^isub>0. \<forall>x\<le>x\<^isub>0. b \<ge> x ^ ?n"
+      thus "\<forall>b::real. \<exists>x\<^sub>0. \<forall>x\<le>x\<^sub>0. b \<ge> x ^ ?n"
       proof (clarify)
         fix b :: real
-        let ?x\<^isub>0 = "min b (-1)"
-        show "\<exists>x\<^isub>0. \<forall>x\<le>x\<^isub>0. x ^ ?n \<le> b"
-        proof (rule exI[of _ ?x\<^isub>0], clarify)
-          fix x assume "x \<le> ?x\<^isub>0"
+        let ?x\<^sub>0 = "min b (-1)"
+        show "\<exists>x\<^sub>0. \<forall>x\<le>x\<^sub>0. x ^ ?n \<le> b"
+        proof (rule exI[of _ ?x\<^sub>0], clarify)
+          fix x assume "x \<le> ?x\<^sub>0"
           from power_mono_odd[OF False this]
-              have "x ^ ?n \<le> ?x\<^isub>0 ^ ?n" .
-          also from power_increasing[OF assms(1), of "-?x\<^isub>0"] 
-              have "?x\<^isub>0 ^ ?n \<le> ?x\<^isub>0" by (simp add: power_minus_odd[OF False])
+              have "x ^ ?n \<le> ?x\<^sub>0 ^ ?n" .
+          also from power_increasing[OF assms(1), of "-?x\<^sub>0"] 
+              have "?x\<^sub>0 ^ ?n \<le> ?x\<^sub>0" by (simp add: power_minus_odd[OF False])
           also have "... \<le> b" by simp
           finally show "x ^ ?n \<le> b" .
        qed
@@ -619,23 +619,23 @@ next
         proof (cases "even (degree p)")
           case True
             from poly_at_top_or_bot_at_bot[OF deg lc_pos] and True
-              obtain x\<^isub>0 where "\<And>x. x \<le> x\<^isub>0 \<Longrightarrow> poly p x \<ge> 1"
+              obtain x\<^sub>0 where "\<And>x. x \<le> x\<^sub>0 \<Longrightarrow> poly p x \<ge> 1"
                 by (fastforce simp add: filterlim_at_top filterlim_at_bot
                         eventually_at_bot_linorder less_eq_real_def)
-                hence "\<And>x. x \<le> x\<^isub>0 \<Longrightarrow> sgn (poly p x) = 1" by force
+                hence "\<And>x. x \<le> x\<^sub>0 \<Longrightarrow> sgn (poly p x) = 1" by force
               thus ?thesis 
                 by (simp add: True eventually_at_bot_linorder poly_neg_inf_def, 
-                    intro exI[of _ x\<^isub>0], simp add: lc_pos)
+                    intro exI[of _ x\<^sub>0], simp add: lc_pos)
        next
           case False
             from poly_at_top_or_bot_at_bot[OF deg lc_pos] and False
-              obtain x\<^isub>0 where "\<And>x. x \<le> x\<^isub>0 \<Longrightarrow> poly p x \<le> -1"
+              obtain x\<^sub>0 where "\<And>x. x \<le> x\<^sub>0 \<Longrightarrow> poly p x \<le> -1"
                 by (fastforce simp add: filterlim_at_bot filterlim_at_bot
                         eventually_at_bot_linorder less_eq_real_def)
-                hence "\<And>x. x \<le> x\<^isub>0 \<Longrightarrow> sgn (poly p x) = -1" by force
+                hence "\<And>x. x \<le> x\<^sub>0 \<Longrightarrow> sgn (poly p x) = -1" by force
               thus ?thesis 
                 by (simp add: False eventually_at_bot_linorder poly_neg_inf_def, 
-                              intro exI[of _ x\<^isub>0], simp add: lc_pos)
+                              intro exI[of _ x\<^sub>0], simp add: lc_pos)
       qed
     next
       case False
@@ -644,23 +644,23 @@ next
         proof (cases "even (degree p)")
           case True
             with poly_at_bot_or_top_at_bot[OF deg lc_neg]
-              obtain x\<^isub>0 where "\<And>x. x \<le> x\<^isub>0 \<Longrightarrow> poly p x \<le> -1"
+              obtain x\<^sub>0 where "\<And>x. x \<le> x\<^sub>0 \<Longrightarrow> poly p x \<le> -1"
                   by (fastforce simp: filterlim_at_bot 
                           eventually_at_bot_linorder less_eq_real_def) 
-              hence "\<And>x. x \<le> x\<^isub>0 \<Longrightarrow> sgn (poly p x) = -1" by force
+              hence "\<And>x. x \<le> x\<^sub>0 \<Longrightarrow> sgn (poly p x) = -1" by force
               thus ?thesis 
                 by (simp only: True eventually_at_bot_linorder poly_neg_inf_def, 
-                               intro exI[of _ x\<^isub>0], simp add: lc_neg)
+                               intro exI[of _ x\<^sub>0], simp add: lc_neg)
         next
           case False
             with poly_at_bot_or_top_at_bot[OF deg lc_neg]
-              obtain x\<^isub>0 where "\<And>x. x \<le> x\<^isub>0 \<Longrightarrow> poly p x \<ge> 1"
+              obtain x\<^sub>0 where "\<And>x. x \<le> x\<^sub>0 \<Longrightarrow> poly p x \<ge> 1"
                   by (fastforce simp: filterlim_at_top 
                           eventually_at_bot_linorder less_eq_real_def) 
-              hence "\<And>x. x \<le> x\<^isub>0 \<Longrightarrow> sgn (poly p x) = 1" by force
+              hence "\<And>x. x \<le> x\<^sub>0 \<Longrightarrow> sgn (poly p x) = 1" by force
               thus ?thesis 
                 by (simp only: False eventually_at_bot_linorder poly_neg_inf_def, 
-                               intro exI[of _ x\<^isub>0], simp add: lc_neg)
+                               intro exI[of _ x\<^sub>0], simp add: lc_neg)
         qed
     qed
 qed

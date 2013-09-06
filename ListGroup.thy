@@ -39,8 +39,8 @@ lemma group_Cons_alt[simp]: "x # tl (group (x # xs)) = group (x # xs)"
     by (induction xs rule: group.induct, auto)
 
 lemma group_append: 
-  "group (xs\<^isub>1 @ x # xs\<^isub>2) = group (xs\<^isub>1 @ [x]) @ tl (group (x # xs\<^isub>2))"
-  by (induction xs\<^isub>1 rule: group.induct, simp_all)
+  "group (xs\<^sub>1 @ x # xs\<^sub>2) = group (xs\<^sub>1 @ [x]) @ tl (group (x # xs\<^sub>2))"
+  by (induction xs\<^sub>1 rule: group.induct, simp_all)
 
 lemma group_map_injective:
   assumes "inj f"
