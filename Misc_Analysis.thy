@@ -1,4 +1,4 @@
-theory MiscAnalysis
+theory Misc_Analysis
 imports Limits
 begin
 

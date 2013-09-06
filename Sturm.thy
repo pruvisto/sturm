@@ -1,136 +1,8 @@
 theory Sturm
-imports "~~/src/HOL/Library/Poly_Deriv" SturmLibrary
+imports "~~/src/HOL/Library/Poly_Deriv" Sturm_Library
 begin
 
-locale quasi_sturm_seq =
-  fixes ps :: "(real poly) list"
-  assumes last_ps_sgn_const[simp]: 
-      "\<And>x y. sgn (poly (last ps) x) = sgn (poly (last ps) y)"
-  assumes ps_not_Nil[simp]: "ps \<noteq> []"
-  assumes signs: "\<And>i x. \<lbrakk>i < length ps - 2; poly (ps ! (i+1)) x = 0\<rbrakk>
-                     \<Longrightarrow> (poly (ps ! (i+2)) x) * (poly (ps ! i) x) < 0"
-begin
-
-  lemma (in -) sturm_adjacent_root_aux:
-    assumes "i < length (ps :: real poly list) - 1"
-    assumes "poly (ps ! i) x = 0" and "poly (ps ! (i + 1)) x = 0"
-    assumes "\<And>i x. \<lbrakk>i < length ps - 2; poly (ps ! (i+1)) x = 0\<rbrakk>
-                     \<Longrightarrow> sgn (poly (ps ! (i+2)) x) = - sgn (poly (ps ! i) x)"
-    shows "\<forall>j\<le>i+1. poly (ps ! j) x = 0"
-  using assms
-  proof (induction i)
-    case 0 thus ?case by (clarsimp, rename_tac j, case_tac j, simp_all)
-  next
-    case (Suc i)
-      from Suc.prems(1,2) 
-          have "sgn (poly (ps ! (i + 2)) x) = - sgn (poly (ps ! i) x)"
-          by (intro assms(4)) simp_all
-      with Suc.prems(3) have "poly (ps ! i) x = 0" by (simp add: sgn_zero_iff)
-      with Suc.prems have "\<forall>j\<le>i+1. poly (ps ! j) x = 0"
-          by (intro Suc.IH, simp_all)
-      with Suc.prems(3) show ?case
-        by (clarsimp, rename_tac j, case_tac "j = Suc (Suc i)", simp_all)
-  qed
-
-
-end
-
-lemma [simp]: "\<not>quasi_sturm_seq []" by (simp add: quasi_sturm_seq_def)
-
-lemma quasi_sturm_seq_Cons:
-  assumes "quasi_sturm_seq (p#ps)" and "ps \<noteq> []"
-  shows "quasi_sturm_seq ps"
-proof (unfold_locales)
-  show "ps \<noteq> []" by fact
-next
-  from assms(1) interpret quasi_sturm_seq "p#ps" .
-  fix x y
-  from last_ps_sgn_const and `ps \<noteq> []` 
-      show "sgn (poly (last ps) x) = sgn (poly (last ps) y)" by simp_all
-next
-  from assms(1) interpret quasi_sturm_seq "p#ps" .
-  fix i x
-  assume "i < length ps - 2" and "poly (ps ! (i+1)) x = 0"
-  with signs[of "i+1"] 
-      show "poly (ps ! (i+2)) x * poly (ps ! i) x < 0" by simp
-qed
-
-  
-
-locale sturm_seq = quasi_sturm_seq + 
-  fixes p :: "real poly"
-  assumes hd_ps_p[simp]: "hd ps = p"
-  assumes length_ps_ge_2[simp]: "length ps \<ge> 2"
-  assumes deriv: "\<And>x\<^sub>0. poly p x\<^sub>0 = 0 \<Longrightarrow> 
-      eventually (\<lambda>x. sgn (poly (p * ps!1) x) = 
-                      (if x > x\<^sub>0 then 1 else -1)) (at x\<^sub>0)"
-begin
-
-  lemma quasi_sturm_seq: "quasi_sturm_seq ps" ..
-
-  lemma ps_first_two:
-    obtains q ps' where "ps = p # q # ps'"
-    using hd_ps_p length_ps_ge_2
-      by (cases ps, simp, clarsimp, rename_tac ps', case_tac ps', auto)
-
-  lemma ps_first: "ps ! 0 = p" by (rule ps_first_two, simp)
-
-end
-
-
-definition no_adjacent_roots where
-"no_adjacent_roots ps = (\<forall>i x. i < length ps - 1 \<longrightarrow> 
-    poly (ps!i) x = 0 \<longrightarrow> poly (ps!(i+1)) x = 0 \<longrightarrow> False)"
-
-lemma no_adjacent_rootsI[intro]:
-  assumes "\<And>i x. i < length ps - 1 \<Longrightarrow> 
-               poly (ps!i) x = 0 \<Longrightarrow> poly (ps!(i+1)) x = 0 \<Longrightarrow> False"
-  shows "no_adjacent_roots ps"
-  using assms unfolding no_adjacent_roots_def by force
-
-lemma no_adjacent_rootsD[dest]:
-  assumes "no_adjacent_roots ps"
-  assumes "i < length ps - 1" "poly (ps!i) x = 0" "poly (ps!(i+1)) x = 0"
-  shows False
-  using assms unfolding no_adjacent_roots_def by force
-
-lemma [simp]: "length ps < 2 \<Longrightarrow> no_adjacent_roots ps"
-  unfolding no_adjacent_roots_def by simp
-
-lemma no_adjacent_roots_distrib[dest]:
-  assumes "no_adjacent_roots (ps\<^sub>1 @ ps\<^sub>2)"
-  shows "no_adjacent_roots ps\<^sub>1" and "no_adjacent_roots ps\<^sub>2"
-proof-
-  let ?ps = "ps\<^sub>1 @ ps\<^sub>2"
-  show "no_adjacent_roots ps\<^sub>1"
-  proof
-    case (goal1 i x)
-      from goal1 have "?ps ! i = ps\<^sub>1 ! i" "?ps ! (i+1) = ps\<^sub>1 ! (i+1)" 
-          by (auto simp: nth_append)
-      with goal1 have "poly (?ps ! i) x = 0" and
-                      "poly (?ps ! (i+1)) x = 0" by simp_all
-      from goal1 and no_adjacent_rootsD[OF assms _ this] show False by force
-  qed
-
-  show "no_adjacent_roots ps\<^sub>2"
-  proof
-    case (goal1 i x)
-      let ?l = "length ps\<^sub>1"
-      from goal1 have "?ps ! (?l + i) = ps\<^sub>2 ! i" "?ps ! (?l+i+1) = ps\<^sub>2 ! (i+1)" 
-          by (auto simp: nth_append)
-      with goal1 have "poly (?ps ! (?l+i)) x = 0" and
-                      "poly (?ps ! (?l+i+1)) x = 0" by simp_all
-      from goal1 and no_adjacent_rootsD[OF assms _ this] show False by force
-  qed
-qed
-
-
-locale sturm_seq_squarefree = sturm_seq +
-  assumes p_squarefree: "\<And>x. \<not>(poly p x = 0 \<and> poly (ps!1) x = 0)"
-begin
-end
-
-
+section {* sign_changes function *}
 
 definition sign_changes where
 "sign_changes ps (x::real) = 
@@ -185,8 +57,94 @@ definition sign_changes_neg_inf where
 
 
 
+section {* Definition of Sturm sequences locale *}
+
+locale quasi_sturm_seq =
+  fixes ps :: "(real poly) list"
+  assumes last_ps_sgn_const[simp]: 
+      "\<And>x y. sgn (poly (last ps) x) = sgn (poly (last ps) y)"
+  assumes ps_not_Nil[simp]: "ps \<noteq> []"
+  assumes signs: "\<And>i x. \<lbrakk>i < length ps - 2; poly (ps ! (i+1)) x = 0\<rbrakk>
+                     \<Longrightarrow> (poly (ps ! (i+2)) x) * (poly (ps ! i) x) < 0"
+
+locale sturm_seq = quasi_sturm_seq + 
+  fixes p :: "real poly"
+  assumes hd_ps_p[simp]: "hd ps = p"
+  assumes length_ps_ge_2[simp]: "length ps \<ge> 2"
+  assumes deriv: "\<And>x\<^sub>0. poly p x\<^sub>0 = 0 \<Longrightarrow> 
+      eventually (\<lambda>x. sgn (poly (p * ps!1) x) = 
+                      (if x > x\<^sub>0 then 1 else -1)) (at x\<^sub>0)"
+begin
+
+  lemma quasi_sturm_seq: "quasi_sturm_seq ps" ..
+
+  lemma ps_first_two:
+    obtains q ps' where "ps = p # q # ps'"
+    using hd_ps_p length_ps_ge_2
+      by (cases ps, simp, clarsimp, rename_tac ps', case_tac ps', auto)
+
+  lemma ps_first: "ps ! 0 = p" by (rule ps_first_two, simp)
+
+end
+
+locale sturm_seq_squarefree = sturm_seq +
+  assumes p_squarefree: "\<And>x. \<not>(poly p x = 0 \<and> poly (ps!1) x = 0)"
+
+lemma [simp]: "\<not>quasi_sturm_seq []" by (simp add: quasi_sturm_seq_def)
+
+lemma quasi_sturm_seq_Cons:
+  assumes "quasi_sturm_seq (p#ps)" and "ps \<noteq> []"
+  shows "quasi_sturm_seq ps"
+proof (unfold_locales)
+  show "ps \<noteq> []" by fact
+next
+  from assms(1) interpret quasi_sturm_seq "p#ps" .
+  fix x y
+  from last_ps_sgn_const and `ps \<noteq> []` 
+      show "sgn (poly (last ps) x) = sgn (poly (last ps) y)" by simp_all
+next
+  from assms(1) interpret quasi_sturm_seq "p#ps" .
+  fix i x
+  assume "i < length ps - 2" and "poly (ps ! (i+1)) x = 0"
+  with signs[of "i+1"] 
+      show "poly (ps ! (i+2)) x * poly (ps ! i) x < 0" by simp
+qed
+
+
+
+section {* Auxiliary lemmas about roots and sign changes *}
+
+lemma (in -) sturm_adjacent_root_aux:
+  assumes "i < length (ps :: real poly list) - 1"
+  assumes "poly (ps ! i) x = 0" and "poly (ps ! (i + 1)) x = 0"
+  assumes "\<And>i x. \<lbrakk>i < length ps - 2; poly (ps ! (i+1)) x = 0\<rbrakk>
+                   \<Longrightarrow> sgn (poly (ps ! (i+2)) x) = - sgn (poly (ps ! i) x)"
+  shows "\<forall>j\<le>i+1. poly (ps ! j) x = 0"
+using assms
+proof (induction i)
+  case 0 thus ?case by (clarsimp, rename_tac j, case_tac j, simp_all)
+next
+  case (Suc i)
+    from Suc.prems(1,2) 
+        have "sgn (poly (ps ! (i + 2)) x) = - sgn (poly (ps ! i) x)"
+        by (intro assms(4)) simp_all
+    with Suc.prems(3) have "poly (ps ! i) x = 0" by (simp add: sgn_zero_iff)
+    with Suc.prems have "\<forall>j\<le>i+1. poly (ps ! j) x = 0"
+        by (intro Suc.IH, simp_all)
+    with Suc.prems(3) show ?case
+      by (clarsimp, rename_tac j, case_tac "j = Suc (Suc i)", simp_all)
+qed
+
+
+text {* 
+  This function splits the sign list of a Sturm sequence at a 
+  position @{term x} that is not a root of @{term p} into a 
+  list of sublists such that the number of sign changes within 
+  every sublist is constant in the neighbourhood of @{term x},
+  thus proving that the total number is also constant.
+*}
 fun split_sign_changes where
-"split_sign_changes [p] x = [[p]]" |
+"split_sign_changes [p] (x :: real) = [[p]]" |
 "split_sign_changes [p,q] x = [[p,q]]" |
 "split_sign_changes (p#q#r#ps) x =
     (if poly p x \<noteq> 0 \<and> poly q x = 0 then 
@@ -202,6 +160,11 @@ apply (simp, simp, rename_tac p q r ps x,
        case_tac "poly p x \<noteq> 0 \<and> poly q x = 0", auto)
 done
 
+text {* 
+  A custom induction rule for @{term split_sign_changes} that 
+  uses the fact that all the intermediate parameters in calls 
+  of @{term split_sign_changes} are quasi-Sturm sequences.
+*}
 lemma (in quasi_sturm_seq) split_sign_changes_induct:
   "\<lbrakk>\<And>p x. P [p] x; \<And>p q x. quasi_sturm_seq [p,q] \<Longrightarrow> P [p,q] x;
     \<And>p q r ps x. quasi_sturm_seq (p#q#r#ps) \<Longrightarrow>
@@ -235,8 +198,10 @@ proof-
   qed simp_all  
 qed
 
-
-
+text {* 
+  The total number of sign changes in the split list is the same
+  as the number of sign changes in the original list.
+*}
 lemma (in quasi_sturm_seq) split_sign_changes_correct:
   assumes "poly (hd ps) x\<^sub>0 \<noteq> 0"
   defines "sign_changes' \<equiv> \<lambda>ps x. 
@@ -462,12 +427,21 @@ qed
 
 hide_fact quasi_sturm_seq.hd_nonzero_imp_sign_changes_const_aux
 
+text {*
+  If x is not a root of p, the number of sign changes of the sequence 
+  remains constant in the neighbourhood of x.
+*}
 lemma (in sturm_seq) p_nonzero_imp_sign_changes_const:
   "poly p x\<^sub>0 \<noteq> 0 \<Longrightarrow> 
        eventually (\<lambda>x. sign_changes ps x = sign_changes ps x\<^sub>0) (at x\<^sub>0)"
   using hd_nonzero_imp_sign_changes_const by simp
 
 
+text {*
+  If @{term x} is a root of @{term p} and @{term p} is not the 
+  zero polynomial, the number of sign_changes decreases by 1 at 
+  @{term x}.
+*}
 lemma (in sturm_seq_squarefree) p_zero:
   assumes "poly p x\<^sub>0 = 0" "p \<noteq> 0"
   shows "eventually (\<lambda>x. sign_changes ps x = 
@@ -570,7 +544,11 @@ proof (clarify)
   from natfun_eq_in_ivl[OF `x \<le> b` this] show "f x = f b" .
 qed
   
-
+text {*
+  If @{term p} is non-constant, the number of roots in an interval can 
+  be computed by the number of sign changes of the sequence at 
+  the border of the interval.
+*}
 lemma (in sturm_seq_squarefree) count_roots_between:
   assumes [simp]: "p \<noteq> 0" "a \<le> b"
   shows "sign_changes ps a - sign_changes ps b = 
@@ -688,7 +666,11 @@ proof-
   thus ?thesis by simp
 qed
 
-
+text {*
+  The number of sign changes in the limits of the polynomials to 
+  positive (resp. negative) infinity can be used to compute the total 
+  number of roots.
+*}
 lemma (in sturm_seq_squarefree) count_roots:
   assumes "p \<noteq> 0"
   shows "sign_changes_neg_inf ps - sign_changes_inf ps = 
@@ -720,13 +702,14 @@ qed
 
 
 
-
+section {* Canonical Sturm sequence *}
 
 lemma degree_mod_less': "degree q \<noteq> 0 \<Longrightarrow> degree (p mod q) < degree q"
   using assms degree_mod_less by force
 
 function sturm_aux where
-"sturm_aux p q = (if degree q = 0 then [p,q] else p # sturm_aux q (-(p mod q)))"
+"sturm_aux (p :: real poly) q = 
+    (if degree q = 0 then [p,q] else p # sturm_aux q (-(p mod q)))"
   by (pat_completeness, simp_all)
 termination by (relation "measure (degree \<circ> snd)", 
                 simp_all add: o_def degree_mod_less')
@@ -964,6 +947,12 @@ proof-
   ultimately show "poly ?r x * poly ?p x < 0" by simp
 qed
 
+
+text {*
+  If @{term p} contains no multiple roots, @{term "sturm p"}, i.e. 
+  the canonical Sturm sequence for p, is a squarefree Sturm sequence 
+  that can be used to determine the number of roots of @{term p}.
+*}
 lemma sturm_seq_sturm[simp]: 
    assumes "rsquarefree p"
    shows "sturm_seq_squarefree (sturm p) p"
@@ -992,6 +981,13 @@ next
 qed
 
 
+section {* Canonical squarefree Sturm sequence *}
+
+text {*
+  This removes multiple roots from @{term p} by dividing it by 
+  its gcd with its derivative. The resulting polynomials has the same 
+  roots as @{term p}, but with multiplicity 1.
+*}
 definition sturm_squarefree where
   "sturm_squarefree p = sturm (p div (gcd p (pderiv p)))"
 
@@ -1042,7 +1038,14 @@ proof
 qed
 
 
+section {* Optimisation for non-multiple roots *}
 
+text {*
+  We can also define the following non-canonical Sturm sequence that 
+  is obtained by taking the canonical Sturm sequence of @{term p}
+  (possibly with multiple roots) and then dividing the entire 
+  sequence by the gcd of p and its derivative.
+*}
 definition sturm_squarefree' where
 "sturm_squarefree' p = (let d = gcd p (pderiv p)
                          in map (\<lambda>p'. p' div d) (sturm p))"
@@ -1149,6 +1152,10 @@ proof-
 qed
 
 
+text {*
+  This approach indeed also yields a valid squarefree Sturm sequence
+  for the polynomial @{term "p / q"}.
+*}
 lemma sturm_seq_squarefree':
   assumes "(p :: real poly) \<noteq> 0"
   defines "d \<equiv> gcd p (pderiv p)"
@@ -1227,8 +1234,17 @@ proof
                          zero_less_divide_iff split: split_if_asm)
   qed
 qed
-  
 
+
+text {*
+  Critically, unless @{term x} is a multiple root of @{term p} 
+  (i.e. a root of both @{term p} and its derivative), the number 
+  of sign changes in the non-canonical Sturm sequence we defined 
+  is the same as the number of sign changes in the canonical Sturm 
+  sequence. Therefore we can use the canonical Sturm sequence 
+  even in the non-squarefree case if the borders of the interval 
+  we are interested in are not multiple roots of the polynomial.
+*}
 lemma sturm_sturm_squarefree'_same_sign_changes:
   assumes "poly p x \<noteq> 0 \<or> poly (pderiv p) x \<noteq> 0"
   shows "sign_changes (sturm p) x = sign_changes (sturm_squarefree' p) x"
@@ -1260,7 +1276,7 @@ qed
 
   
 
-
+section {* Root-counting functions *}
 
 definition count_roots_between where
 "count_roots_between p a b = (if a \<le> b \<and> p \<noteq> 0 then 
@@ -1437,177 +1453,5 @@ proof (cases "p = 0", simp add: count_roots_def)
   also note count_roots_correct
   finally show ?thesis by (simp add: `p \<noteq> 0` Let_def)
 qed
-
-
-lemma poly_card_roots_less_leq:
-  "count_roots_between p a b = n \<Longrightarrow> 
-       card {x. a < x \<and> x \<le> b \<and> poly p x = 0} = n"
-  by (simp add: count_roots_between_correct)
-
-lemma poly_card_roots_leq_leq:
-  assumes "Suc (count_roots_between p a b) = 
-      (if (a \<le> b \<and> poly p a = 0 \<and> p \<noteq> 0) \<or> (a = b \<and> p = 0) then n else Suc n)"
-  shows "card {x. a \<le> x \<and> x \<le> b \<and> poly p x = 0} = n"
-proof (cases "(a \<le> b \<and> poly p a = 0 \<and> p \<noteq> 0) \<or> (a = b \<and> p = 0)")
-  case False
-    note False' = this
-    thus ?thesis
-    proof (cases "p = 0")
-      case False
-        with False' have "poly p a \<noteq> 0 \<or> a > b" by auto
-        hence "{x. a \<le> x \<and> x \<le> b \<and> poly p x = 0} = 
-               {x. a < x \<and> x \<le> b \<and> poly p x = 0}"
-        by (auto simp: less_eq_real_def)
-        thus ?thesis using poly_card_roots_less_leq assms False' 
-            by (auto split: split_if_asm)
-    next
-      case True
-        have [simp]: "{x. a \<le> x \<and> x \<le> b} = {a..b}"
-                     "{x. a < x \<and> x \<le> b} = {a<..b}" by auto
-        from False True assms have "count_roots_between 0 a b = n" 
-            by (auto split: split_if_asm)
-        also note count_roots_between_correct
-        finally show ?thesis using True False
-            by (auto simp: real_interval_card_eq)
-    qed
-next
-  case True
-    note True' = this
-    have fin: "finite {x. a \<le> x \<and> x \<le> b \<and> poly p x = 0}" 
-    proof (cases "p = 0")
-      case True
-        with True' have "a = b" by simp
-        hence "{x. a \<le> x \<and> x \<le> b \<and> poly p x = 0} = {b}" using True by auto
-        thus ?thesis by simp
-    next
-      case False
-        from poly_roots_finite[OF this] show ?thesis by fast
-    qed
-    with True have "{x. a \<le> x \<and> x \<le> b \<and> poly p x = 0} =
-        insert a {x. a < x \<and> x \<le> b \<and> poly p x = 0}" by auto
-    hence "card {x. a \<le> x \<and> x \<le> b \<and> poly p x = 0} =
-           Suc (card {x. a < x \<and> x \<le> b \<and> poly p x = 0})" using fin by force
-    also have "... = n"
-        using True count_roots_between_correct assms by auto
-    finally show ?thesis .
-qed
-
-lemma poly_card_roots_less_less:
-  assumes "count_roots_between p a b = 
-      (if poly p b = 0 \<and> a < b \<and> p \<noteq> 0 then Suc n else n)"
-  shows "card {x. a < x \<and> x < b \<and> poly p x = 0} = n"
-proof (cases "poly p b = 0 \<and> a < b \<and> p \<noteq> 0")
-  case False
-    note False' = this
-    show ?thesis
-    proof (cases "p = 0")
-      case True
-        have [simp]: "{x. a < x \<and> x < b} = {a<..<b}"
-                     "{x. a < x \<and> x \<le> b} = {a<..b}" by auto
-        from True False' assms show ?thesis 
-            by (auto simp: count_roots_between_correct real_interval_card_eq)
-    next
-      case False
-        with False' have "{x. a < x \<and> x < b \<and> poly p x = 0} = 
-                          {x. a < x \<and> x \<le> b \<and> poly p x = 0}"
-          by (auto simp: less_eq_real_def)
-      thus ?thesis using poly_card_roots_less_leq assms False by auto
-  qed
-next
-  case True
-    with poly_roots_finite
-        have fin: "finite {x. a < x \<and> x < b \<and> poly p x = 0}" by fast
-    from True have "{x. a < x \<and> x \<le> b \<and> poly p x = 0} =
-        insert b {x. a < x \<and> x < b \<and> poly p x = 0}" by auto
-    hence "Suc (card {x. a < x \<and> x < b \<and> poly p x = 0}) =
-           card {x. a < x \<and> x \<le> b \<and> poly p x = 0}" using fin by force
-    also note count_roots_between_correct[symmetric]
-    also have "count_roots_between p a b = Suc n" using assms True by simp
-    finally show ?thesis by simp
-qed
-
-lemma poly_card_roots_leq_less:
-  assumes "Suc (count_roots_between p a b) = 
-      (if p = 0 \<or> a \<ge> b then Suc 0
-         else (if poly p a = 0 then 0 else Suc 0) + 
-              (if poly p b = 0 then Suc 0 else 0)) + n"
-  shows "card {x::real. a \<le> x \<and> x < b \<and> poly p x = 0} = n"
-proof (cases "p = 0 \<or> a \<ge> b")
-  case True
-    note True' = this
-    show ?thesis
-    proof (cases "a \<ge> b")
-      case False
-        have [simp]: "{x. a < x \<and> x \<le> b} = {a<..b}"
-                     "{x. a \<le> x \<and> x < b} = {a..<b}" by auto
-        from False True' assms show ?thesis 
-            by (auto simp: count_roots_between_correct real_interval_card_eq)
-    next
-      case True
-        with True' have "{x. a \<le> x \<and> x < b \<and> poly p x = 0} = 
-                          {x. a < x \<and> x \<le> b \<and> poly p x = 0}"
-          by (auto simp: less_eq_real_def)
-      thus ?thesis using poly_card_roots_less_leq assms True by auto
-  qed
-next
-  case False
-    let ?A = "{x. a \<le> x \<and> x < b \<and> poly p x = 0}"
-    let ?B = "{x. a < x \<and> x \<le> b \<and> poly p x = 0}"
-    let ?C = "{x. x = b \<and> poly p x = 0}"
-    let ?D = "{x. x = a \<and> poly p a = 0}"
-    from False have A: "?C \<subseteq> ?B" and B: "(?B-?C) \<inter> ?D = {}" by auto
-    have CD_if: "?C = (if poly p b = 0 then {b} else {})"
-                "?D = (if poly p a = 0 then {a} else {})" by auto
-    from False poly_roots_finite 
-        have [simp]: "finite ?A" "finite ?B" "finite ?C" "finite ?D"
-            by (fast, fast, simp_all)
-    from False have C: "?A = (?B \<union> ?D) - ?C" by (auto simp: less_eq_real_def)
-    from False have "?C \<subseteq> ?B \<union> ?D" "?B \<inter> ?D = {}" by auto
-
-    from count_roots_between_correct
-        have "Suc (count_roots_between p a b) = Suc (card ?B)" by simp
-    also note assms
-    finally have "Suc (card ?B) = n + (if poly p a = 0 then 0 else Suc 0) +
-                      (if poly p b = 0 then Suc 0 else 0)" using False by simp
-    hence "n = Suc (card ?B) - (if poly p a = 0 then 0 else Suc 0) - 
-               (if poly p b = 0 then Suc 0 else 0)" by (auto simp: field_simps)
-    also have "... = card ?B + card ?D - card ?C" by (auto simp: CD_if)
-    also have "... = card ?A"
-        by (rule sym, subst C, subst card_Diff_subset, simp, fact,
-                subst card_Un_disjoint, simp, simp, fact, rule refl)
-    finally show ?thesis ..
-qed
-
-lemma poly_card_roots:
-  assumes "count_roots p = n"
-  shows "card {x::real. poly p x = 0} = n"
-  using assms count_roots_correct by simp
-
-lemmas sturm_intros = poly_card_roots poly_card_roots_less_leq 
-    poly_card_roots_leq_less poly_card_roots_less_less poly_card_roots_leq_leq
-
-method_setup sturm = {*
-let
-  fun sturm_conv thy = Code_Runtime.static_holds_conv thy
-  [@{const_name count_roots_between}, @{const_name count_roots},
-   @{const_name Trueprop}, @{const_name Rat.of_int}, 
-   @{const_name Power.power_class.power},
-   @{const_name Num.nat_of_num}]
-in
-  Scan.succeed (fn ctxt =>
-    SIMPLE_METHOD' (
-      fn i =>
-        resolve_tac @{thms sturm_intros} 1
-        THEN CONVERSION (sturm_conv (Proof_Context.theory_of ctxt)) 1
-        THEN rtac TrueI 1
-))
-end
-*} "decide how many roots a polynomial has"
-
-lemma example:
-  "card {x::real. -0.010831 < x \<and> x < 0.010831 \<and> 
-     poly [:0, -17/2097152, -49/16777216, 1/6, 1/24, 1/120:] x = 0} = 3"
- by sturm
-
 
 end

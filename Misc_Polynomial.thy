@@ -1,5 +1,5 @@
-theory MiscPolynomial
-imports "~~/src/HOL/Library/Poly_Deriv" Misc MiscAnalysis
+theory Misc_Polynomial
+imports "~~/src/HOL/Library/Poly_Deriv" Misc Misc_Analysis
 begin
 
 section {* General simplification lemmas *}
