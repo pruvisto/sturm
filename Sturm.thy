@@ -1268,7 +1268,7 @@ definition count_roots_between where
     in sign_changes ps a - sign_changes ps b) else 0)"
 
 definition count_roots where
-"count_roots p = (if p = 0 then 0 else
+"count_roots p = (if (p::real poly) = 0 then 0 else
   (let ps = sturm_squarefree p
     in sign_changes_neg_inf ps - sign_changes_inf ps))"
 
@@ -1336,6 +1336,106 @@ next
   also from poly_div_gcd_squarefree(2)[OF `p \<noteq> 0`]
       have "{x. poly p' x = 0} = {x. poly p x = 0}" unfolding p'_def by blast
   finally show ?thesis .
+qed
+
+lemma [code]:
+  "count_roots_between p a b =
+     (let q = pderiv p
+       in if a > b \<or> p = 0 then 0
+       else if (poly p a \<noteq> 0 \<or> poly q a \<noteq> 0) \<and> (poly p b \<noteq> 0 \<or> poly q b \<noteq> 0)
+            then (let ps = sturm p 
+                   in sign_changes ps a - sign_changes ps b)
+            else (let ps = sturm_squarefree p
+                   in sign_changes ps a - sign_changes ps b))"
+proof (cases "a > b \<or> p = 0")
+  case True
+    thus ?thesis by (auto simp add: count_roots_between_def Let_def)
+next
+  case False
+    hence "a \<le> b" "p \<noteq> 0" by simp_all
+    thus ?thesis
+    proof (cases "(poly p a \<noteq> 0 \<or> poly (pderiv p) a \<noteq> 0) \<and> 
+                  (poly p b \<noteq> 0 \<or> poly (pderiv p) b \<noteq> 0)")
+    case True
+      hence A: "poly p a \<noteq> 0 \<or> poly (pderiv p) a \<noteq> 0" and 
+            B: "poly p b \<noteq> 0 \<or> poly (pderiv p) b \<noteq> 0" by auto
+      have C: "p div gcd p (pderiv p) \<noteq> 0" 
+          using poly_div_gcd_squarefree(1)[OF `p \<noteq> 0`] by auto
+      from sturm_seq_squarefree'[OF `p \<noteq> 0`]
+          interpret sturm_seq_squarefree "sturm_squarefree' p" 
+              "p div gcd p (pderiv p)" .
+      from count_roots_between[OF C `a \<le> b`] and
+           sturm_sturm_squarefree'_same_sign_changes[OF A] and
+           sturm_sturm_squarefree'_same_sign_changes[OF B] and
+           poly_div_gcd_squarefree(2)[OF `p \<noteq> 0`] and
+           True `a \<le> b` `p \<noteq> 0` count_roots_between_correct
+      show ?thesis by (auto simp add: Let_def split: split_if_asm)
+  next
+    case False
+      thus ?thesis using `p \<noteq> 0` `a \<le> b`
+          by (auto simp add: Let_def count_roots_between_def)
+  qed
+qed
+
+
+lemma [code]: 
+  "count_roots (p::real poly) =
+    (if p = 0 then 0 
+     else let ps = sturm p 
+           in sign_changes_neg_inf ps - sign_changes_inf ps)"
+proof (cases "p = 0", simp add: count_roots_def)
+  case False
+    def p' \<equiv> "p div (gcd p (pderiv p))"
+    from poly_div_gcd_squarefree(1)[OF `p \<noteq> 0`] have "p' \<noteq> 0"
+        unfolding p'_def by clarsimp
+
+    from sturm_seq_squarefree'[OF `p \<noteq> 0`]
+        interpret sturm_seq_squarefree "sturm_squarefree' p" p'
+        unfolding p'_def .
+
+    from poly_roots_bounds[OF `p \<noteq> 0`] guess l\<^sub>1 u\<^sub>1 .
+    note lu\<^sub>1_props = this
+
+    have "finite (set (sturm p))" by simp
+    from polys_inf_sign_thresholds[OF this] guess l\<^sub>2 u\<^sub>2 .
+    note lu\<^sub>2_props = this
+
+    let ?l = "min l\<^sub>1 l\<^sub>2" and ?u = "max u\<^sub>1 u\<^sub>2"
+    from lu\<^sub>1_props lu\<^sub>2_props have [simp]: "?l \<le> ?u" by simp
+    from lu\<^sub>1_props sgn_zero_iff
+         have [intro]: "\<And>x. poly p x = 0 \<Longrightarrow> x > ?l"
+                       "\<And>x. poly p x = 0 \<Longrightarrow> x \<le> ?u"
+        by (metis le_less less_linear min.cobounded1 min_less_iff_conj,
+            metis le_cases min_max.le_supI1 sgn_zero_iff)
+
+    have "?l \<le> l\<^sub>1" "?u \<ge> u\<^sub>1" by simp_all
+    from lu\<^sub>1_props(5)[OF this(1)] lu\<^sub>1_props(2)
+         lu\<^sub>1_props(6)[OF this(2)] lu\<^sub>1_props(3)  
+        have [simp]: "poly p ?l \<noteq> 0" "poly p ?u \<noteq> 0" 
+            by (auto simp: sgn_zero_iff)
+    
+    from lu\<^sub>1_props lu\<^sub>2_props 
+      have "map (\<lambda>p. sgn (poly p ?l)) (sturm p) = map poly_neg_inf (sturm p)"
+           "map (\<lambda>p. sgn (poly p ?u)) (sturm p) = map poly_inf (sturm p)" 
+           by auto
+    hence "sign_changes_neg_inf (sturm p) - sign_changes_inf (sturm p) =
+               sign_changes (sturm p) ?l - sign_changes (sturm p) ?u"
+      by (simp_all only: sign_changes_def sign_changes_inf_def 
+                         sign_changes_neg_inf_def)
+    also from sturm_sturm_squarefree'_same_sign_changes[of p "min l\<^sub>1 l\<^sub>2"]
+        have "sign_changes (sturm p) (min l\<^sub>1 l\<^sub>2) = 
+             sign_changes (sturm_squarefree' p) (min l\<^sub>1 l\<^sub>2)" by auto
+    also from sturm_sturm_squarefree'_same_sign_changes[of p "max u\<^sub>1 u\<^sub>2"]
+        have "sign_changes (sturm p) (max u\<^sub>1 u\<^sub>2) = 
+              sign_changes (sturm_squarefree' p) (max u\<^sub>1 u\<^sub>2)" by auto
+  also note count_roots_between[OF `p' \<noteq> 0` `?l \<le> ?u`]
+  also from poly_div_gcd_squarefree(2)[OF `p \<noteq> 0`]
+      have "{x. ?l < x \<and> x \<le> ?u \<and> poly p' x = 0} = 
+            {x. ?l < x \<and> x \<le> ?u \<and> poly p x = 0}" by (auto simp: p'_def)
+  also from lu\<^sub>1_props
+      have "{x. ?l < x \<and> x \<le> ?u \<and> poly p x = 0} = {x. poly p x = 0}" by auto
+  also note count_roots_correct
+  finally show ?thesis by (simp add: `p \<noteq> 0` Let_def)
 qed
 
 
