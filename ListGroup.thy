@@ -42,4 +42,11 @@ lemma group_append:
   "group (xs\<^isub>1 @ x # xs\<^isub>2) = group (xs\<^isub>1 @ [x]) @ tl (group (x # xs\<^isub>2))"
   by (induction xs\<^isub>1 rule: group.induct, simp_all)
 
+lemma group_map_injective:
+  assumes "inj f"
+  shows "group (map f xs) = map f (group xs)"
+  by (induction xs rule: group.induct, 
+      auto simp add: injD[OF assms])
+
+
 end

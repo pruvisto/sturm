@@ -62,8 +62,8 @@ locale sturm_seq = quasi_sturm_seq +
   assumes hd_ps_p[simp]: "hd ps = p"
   assumes length_ps_ge_2[simp]: "length ps \<ge> 2"
   assumes deriv: "\<And>x\<^isub>0. poly p x\<^isub>0 = 0 \<Longrightarrow> 
-      eventually (\<lambda>x. sgn (poly (ps!1) x) = 
-                      sgn (x - x\<^isub>0) * sgn (poly p x)) (at x\<^isub>0)"
+      eventually (\<lambda>x. sgn (poly (p * ps!1) x) = 
+                      (if x > x\<^isub>0 then 1 else -1)) (at x\<^isub>0)"
 begin
 
   lemma quasi_sturm_seq: "quasi_sturm_seq ps" ..
@@ -143,13 +143,25 @@ lemma sign_changes_distrib:
   by (simp add: sign_changes_def sgn_zero_iff, subst group_append, simp)
 
 lemma same_signs_imp_same_sign_changes:
-  assumes "\<forall>p \<in> set ps. sgn (poly p x) = sgn (poly p y)"
-  shows "sign_changes ps x = sign_changes ps y"
+  assumes "length ps = length ps'"
+  assumes "\<forall>i < length ps. sgn (poly (ps!i) x) = sgn (poly (ps'!i) y)"
+  shows "sign_changes ps x = sign_changes ps' y"
 proof-
-  from assms have A: "map (\<lambda>p. sgn (poly p x)) ps = map (\<lambda>p. sgn (poly p y)) ps"
-     by (induction ps, simp_all)
+ from assms(2) have A: "map (\<lambda>p. sgn (poly p x)) ps = map (\<lambda>p. sgn (poly p y)) ps'"
+  proof (induction rule: list_induct2[OF assms(1)], simp)
+    case (goal1 p ps p' ps')
+      from goal1(3)
+      have "\<forall>i<length ps. sgn (poly (ps ! i) x) = 
+                         sgn (poly (ps' ! i) y)" by auto
+      from goal1(2)[OF this] goal1(3) show ?case by auto
+  qed
   show ?thesis unfolding sign_changes_def by (simp add: A)
 qed
+
+lemma same_signs_imp_same_sign_changes':
+  assumes "\<forall>p \<in> set ps. sgn (poly p x) = sgn (poly p y)"
+  shows "sign_changes ps x = sign_changes ps y"
+using assms by (intro same_signs_imp_same_sign_changes, simp_all)
 
 lemma sign_changes_sturm_triple:
   assumes "poly p x \<noteq> 0" and "sgn (poly r x) = - sgn (poly p x)"
@@ -338,7 +350,7 @@ next
     ultimately have A:  "eventually (\<lambda>x. \<forall>p\<in>set[p,q]. sgn (poly p x) = 
                            sgn (poly p x\<^isub>0)) (at x\<^isub>0)" by simp
     thus ?case by (force intro: eventually_mono[OF _ A] 
-                                same_signs_imp_same_sign_changes)
+                                same_signs_imp_same_sign_changes')
 next
   case (goal3 p q r ps'' x\<^isub>0)
     hence p_not_0: "poly p x\<^isub>0 \<noteq> 0" by simp
@@ -409,7 +421,7 @@ next
             proof (rule eventually_mono, clarify)
               fix x assume "\<forall>p\<in>set ps'. sgn (poly p x) = sgn (poly p x\<^isub>0)"
               thus "sign_changes ps' x = sign_changes ps' x\<^isub>0"
-                  by (rule same_signs_imp_same_sign_changes)
+                  by (rule same_signs_imp_same_sign_changes')
             next
               show "eventually (\<lambda>x. \<forall>p\<in>set ps'. 
                         sgn (poly p x) = sgn (poly p x\<^isub>0)) (at x\<^isub>0)"
@@ -477,16 +489,21 @@ proof-
   moreover note poly_neighbourhood_without_roots[OF assms(2)] deriv[OF assms(1)]
   ultimately
       have A: "eventually (\<lambda>x. x \<noteq> x\<^isub>0 \<and> poly p x \<noteq> 0 \<and>
-                   sgn (poly (ps!1) x) = sgn (x - x\<^isub>0)*sgn(poly p x) \<and>
+                   sgn (poly (p*ps!1) x) = (if x > x\<^isub>0 then 1 else -1) \<and>
                    sign_changes (q#ps') x = sign_changes (q#ps') x\<^isub>0) (at x\<^isub>0)" 
-          by (simp only: `ps!1 = q`, intro eventually_conj)
+           by (simp only: `ps!1 = q`, intro eventually_conj)
   show ?thesis
   proof (rule eventually_mono[OF _ A], clarify)
     case (goal1 x)
-    hence "poly q x \<noteq> 0" and q_sgn: "sgn (poly q x) = 
+    from zero_less_mult_pos have zero_less_mult_pos':
+        "\<And>a b. \<lbrakk>(0::real) < a*b; 0 < b\<rbrakk> \<Longrightarrow> 0 < a"
+        by (subgoal_tac "a*b = b*a", auto)
+    from goal1 have "poly q x \<noteq> 0" and q_sgn: "sgn (poly q x) = 
               (if x < x\<^isub>0 then -sgn (poly p x) else sgn (poly p x))"
-        by (auto simp add: sgn_real_def split: split_if_asm)
-    from sign_changes_distrib[OF `poly q x \<noteq> 0`, of "[p]" ps']
+        by (auto simp add: sgn_real_def elim: linorder_neqE_linordered_idom
+                 dest: mult_pos_pos mult_neg_neg zero_less_mult_pos 
+                 zero_less_mult_pos' split: split_if_asm)
+     from sign_changes_distrib[OF `poly q x \<noteq> 0`, of "[p]" ps']
         have "sign_changes ps x = sign_changes [p,q] x + sign_changes (q#ps') x"
             by simp
     also from q_sgn and `poly p x \<noteq> 0` 
@@ -818,6 +835,7 @@ qed
 lemma sturm_gcd: "r \<in> set (sturm p) \<Longrightarrow> gcd p (pderiv p) dvd r"
     unfolding sturm_def by (rule sturm_aux_gcd)
 
+
 lemma sturm_adjacent_root_propagate_left:
   assumes "i < length (sturm (p :: real poly)) - 1"
   assumes "poly (sturm p ! i) x = 0"
@@ -836,6 +854,7 @@ proof (intro sturm_adjacent_root_aux[OF assms(1,2,3)])
     thus ?case by (simp add: sgn_minus)
 qed
 
+
 lemma sturm_adjacent_root_not_squarefree:
   assumes "i < length (sturm (p :: real poly)) - 1"
           "poly (sturm p ! i) x = 0" "poly (sturm p ! (i + 1)) x = 0"
@@ -846,6 +865,147 @@ proof-
   thus ?thesis by (auto simp: rsquarefree_roots)
 qed
 
+
+(* TODO: Move *)
+lemma poly_diff_sgn_imp_root:
+  assumes "a < b" and "sgn (poly p a) \<noteq> sgn (poly p (b::real))"
+  shows "\<exists>x. a \<le> x \<and> x \<le> b \<and> poly p x = 0"
+proof (cases "poly p a = 0 \<or> poly p b = 0")
+  case True
+    thus ?thesis using assms(1) 
+        by (elim disjE, rule_tac exI[of _ a], simp,
+                        rule_tac exI[of _ b], simp)
+next
+  case False
+    hence [simp]: "poly p a \<noteq> 0" "poly p b \<noteq> 0" by simp_all
+    show ?thesis
+    proof (cases "poly p a < 0")
+      case True
+        hence "sgn (poly p a) = -1" by simp
+        with assms True have "poly p b > 0"
+            by (auto simp: sgn_real_def split: split_if_asm)
+        from poly_IVT_pos[OF `a < b` True this] guess x ..
+        thus ?thesis by (intro exI[of _ x], simp)
+    next
+      case False
+        hence "poly p a > 0" by (simp add: not_less less_eq_real_def)
+        hence "sgn (poly p a) = 1"  by simp
+        with assms False have "poly p b < 0"
+            by (auto simp: sgn_real_def not_less 
+                           less_eq_real_def split: split_if_asm)
+        from poly_IVT_neg[OF `a < b` `poly p a > 0` this] guess x ..
+        thus ?thesis by (intro exI[of _ x], simp)
+    qed
+qed
+
+lemma no_roots_imp_same_sign:
+  assumes "a < b" "\<forall>x. a \<le> x \<and> x \<le> b \<longrightarrow> poly p x \<noteq> (0::real)"
+  shows "sgn (poly p a) = sgn (poly p b)"
+proof (rule ccontr)
+  assume "sgn (poly p a) \<noteq> sgn (poly p b)"
+  from  poly_diff_sgn_imp_root[OF `a < b` this] guess x ..
+  thus False using assms(2) by auto
+qed
+  
+  
+
+lemma sturm_firsttwo_signs_aux:
+  assumes "(p :: real poly) \<noteq> 0" "q \<noteq> 0"
+  assumes q_pderiv: 
+      "eventually (\<lambda>x. sgn (poly q x) = sgn (poly (pderiv p) x)) (at x\<^isub>0)"
+  assumes p_0: "poly p (x\<^isub>0::real) = 0"
+  shows "eventually (\<lambda>x. sgn (poly (p*q) x) = (if x > x\<^isub>0 then 1 else -1)) (at x\<^isub>0)"
+proof-
+  have A: "eventually (\<lambda>x. poly p x \<noteq> 0 \<and> poly q x \<noteq> 0 \<and>
+               sgn (poly q x) = sgn (poly (pderiv p) x)) (at x\<^isub>0)"
+      using `p \<noteq> 0`  `q \<noteq> 0`
+      by (intro poly_neighbourhood_same_sign q_pderiv
+                poly_neighbourhood_without_roots eventually_conj)
+  then obtain \<epsilon> where \<epsilon>_props: "\<epsilon> > 0" "\<forall>x. x \<noteq> x\<^isub>0 \<and> \<bar>x - x\<^isub>0\<bar> < \<epsilon> \<longrightarrow> 
+      poly p x \<noteq> 0 \<and> poly q x \<noteq> 0 \<and> sgn (poly (pderiv p) x) = sgn (poly q x)"
+      by (auto simp: eventually_at dist_real_def)
+  have sqr_pos: "\<And>x::real. x \<noteq> 0 \<Longrightarrow> sgn x * sgn x = 1" 
+      by (auto simp: sgn_real_def)
+
+  show ?thesis
+  proof (simp only: eventually_at dist_real_def, rule exI[of _ \<epsilon>],
+         intro conjI, fact `\<epsilon> > 0`, clarify)
+    fix x assume "x \<noteq> x\<^isub>0" "\<bar>x - x\<^isub>0\<bar> < \<epsilon>"
+    with \<epsilon>_props have [simp]: "poly p x \<noteq> 0" "poly q x \<noteq> 0"
+        "sgn (poly (pderiv p) x) = sgn (poly q x)" by auto
+    show "sgn (poly (p*q) x) = (if x > x\<^isub>0 then 1 else -1)"
+    proof (cases "x \<ge> x\<^isub>0")
+      case True
+        with `x \<noteq> x\<^isub>0` have "x > x\<^isub>0" by simp
+        from poly_MVT[OF this, of p] guess \<xi> ..
+        note \<xi>_props = this
+        with `\<bar>x - x\<^isub>0\<bar> < \<epsilon>` `poly p x\<^isub>0 = 0` `x > x\<^isub>0` \<epsilon>_props
+            have "\<bar>\<xi> - x\<^isub>0\<bar> < \<epsilon>" "sgn (poly p x) = sgn (x - x\<^isub>0) * sgn (poly q \<xi>)" 
+            by (auto simp add: q_pderiv sgn_mult) 
+        moreover from \<xi>_props \<epsilon>_props `\<bar>x - x\<^isub>0\<bar> < \<epsilon>` 
+            have "\<forall>t. \<xi> \<le> t \<and> t \<le> x \<longrightarrow> poly q t \<noteq> 0" by auto
+        hence "sgn (poly q \<xi>) = sgn (poly q x)" using \<xi>_props \<epsilon>_props
+            by (intro no_roots_imp_same_sign, simp_all)
+        ultimately show ?thesis using True `x \<noteq> x\<^isub>0` \<epsilon>_props \<xi>_props
+            by (auto simp: sgn_mult sqr_pos)
+    next
+      case False
+        hence "x < x\<^isub>0" by simp
+        hence sgn: "sgn (x - x\<^isub>0) = -1" by simp
+        from poly_MVT[OF `x < x\<^isub>0`, of p] guess \<xi> ..
+        note \<xi>_props = this
+        with `\<bar>x - x\<^isub>0\<bar> < \<epsilon>` `poly p x\<^isub>0 = 0` `x < x\<^isub>0` \<epsilon>_props
+            have "\<bar>\<xi> - x\<^isub>0\<bar> < \<epsilon>" "poly p x = (x - x\<^isub>0) * poly (pderiv p) \<xi>" 
+                 "poly p \<xi> \<noteq> 0" by (auto simp: field_simps)
+        hence "sgn (poly p x) = sgn (x - x\<^isub>0) * sgn (poly q \<xi>)" 
+            using \<epsilon>_props \<xi>_props by (auto simp: q_pderiv sgn_mult)
+        moreover from \<xi>_props \<epsilon>_props `\<bar>x - x\<^isub>0\<bar> < \<epsilon>` 
+            have "\<forall>t. x \<le> t \<and> t \<le> \<xi> \<longrightarrow> poly q t \<noteq> 0" by auto
+        hence "sgn (poly q \<xi>) = sgn (poly q x)" using \<xi>_props \<epsilon>_props
+            by (rule_tac sym, intro no_roots_imp_same_sign, simp_all)
+        ultimately show ?thesis using False `x \<noteq> x\<^isub>0` 
+            by (auto simp: sgn_mult sqr_pos) 
+    qed
+  qed
+qed
+
+lemma sturm_firsttwo_signs:
+  fixes ps :: "real poly list"
+  assumes squarefree: "rsquarefree p"
+  assumes p_0: "poly p (x\<^isub>0::real) = 0"
+  shows "eventually (\<lambda>x. sgn (poly (p * sturm p ! 1) x) =
+             (if x > x\<^isub>0 then 1 else -1)) (at x\<^isub>0)"
+proof-
+  from assms have [simp]: "p \<noteq> 0" by (auto simp add: rsquarefree_roots)
+  with squarefree p_0 have [simp]: "pderiv p \<noteq> 0"
+      by (auto simp  add:rsquarefree_roots)
+  from assms show ?thesis
+      by (intro sturm_firsttwo_signs_aux, 
+          simp_all add: rsquarefree_roots)
+qed
+
+
+lemma sturm_signs:
+  assumes squarefree: "rsquarefree p"
+  assumes i_in_range: "i < length (sturm (p :: real poly)) - 2" 
+  assumes q_0: "poly (sturm p ! (i+1)) x = 0" (is "poly ?q x = 0")
+  shows "poly (sturm p ! (i+2)) x * poly (sturm p ! i) x < 0"
+            (is "poly ?p x * poly ?r x < 0")
+proof-
+  from sturm_indices[OF i_in_range] 
+      have "sturm p ! (i+2) = - (sturm p ! i mod sturm p ! (i+1))"
+           (is "?r = - (?p mod ?q)") .
+  hence "-?r = ?p mod ?q" by simp
+  with mod_div_equality[of ?p ?q] have "?p div ?q * ?q - ?r = ?p" by simp
+  hence "poly (?p div ?q) x * poly ?q x - poly ?r x = poly ?p x"
+      by (metis poly_diff poly_mult)
+  with q_0 have r_x: "poly ?r x = -poly ?p x" by simp
+  moreover have sqr_pos: "\<And>x::real. x \<noteq> 0 \<Longrightarrow> x * x > 0" apply (case_tac "x \<ge> 0")
+      by (simp_all add: mult_pos_pos mult_neg_neg)
+  from sturm_adjacent_root_not_squarefree[of i p] assms r_x
+      have "poly ?p x * poly ?p x > 0" by (force intro: sqr_pos)
+  ultimately show "poly ?r x * poly ?p x < 0" by simp
+qed
 
 lemma sturm_seq_sturm[simp]: 
    assumes "rsquarefree p"
@@ -864,69 +1024,15 @@ next
   thus "\<And>x y. sgn (poly (last (sturm p)) x) =
             sgn (poly (last (sturm p)) y)" by simp
 next
-  fix x\<^isub>0 assume p_0: "poly p x\<^isub>0 = 0"
-  def q \<equiv> "pderiv p"
-  from assms have "p \<noteq> 0" by (simp add: rsquarefree_def)
-  from assms and p_0 have q_not_0: "poly q x\<^isub>0 \<noteq> 0"
-      by (simp add: rsquarefree_roots q_def)
-  have A: "eventually (\<lambda>x. poly p x \<noteq> 0 \<and> 
-               sgn (poly q x) = sgn (poly q x\<^isub>0)) (at x\<^isub>0)"
-      using `p \<noteq> 0` q_not_0  by (intro poly_neighbourhood_same_sign 
-                                 poly_neighbourhood_without_roots eventually_conj)
-  then obtain \<epsilon> where \<epsilon>_props: "\<epsilon> > 0" "\<forall>x. x \<noteq> x\<^isub>0 \<and> \<bar>x - x\<^isub>0\<bar> < \<epsilon> \<longrightarrow> 
-      poly p x \<noteq> 0 \<and> sgn (poly q x) = sgn (poly q x\<^isub>0)"
-      by (auto simp: eventually_at dist_real_def)
-  show "eventually (\<lambda>x. sgn (poly (sturm p ! 1) x) = 
-            sgn (x - x\<^isub>0) * sgn (poly p x)) (at x\<^isub>0)"
-  proof (simp add: eventually_at dist_real_def, rule exI[of _ \<epsilon>],
-         intro conjI, fact `\<epsilon> > 0`, clarify)
-    fix x assume "x \<noteq> x\<^isub>0" "\<bar>x - x\<^isub>0\<bar> < \<epsilon>"
-    with \<epsilon>_props have [simp]: "sgn (poly (pderiv p) x) = sgn (poly q x\<^isub>0)"
-        by (simp add: q_def)
-    show "sgn (poly (pderiv p) x) = sgn (x - x\<^isub>0) * sgn (poly p x)"
-    proof (cases "x \<ge> x\<^isub>0")
-      case True
-        with `x \<noteq> x\<^isub>0` have "x > x\<^isub>0" by simp
-        from poly_MVT[OF this, of p] guess \<xi> ..
-        with `\<bar>x - x\<^isub>0\<bar> < \<epsilon>` `poly p x\<^isub>0 = 0` `x > x\<^isub>0`
-        have "\<bar>\<xi> - x\<^isub>0\<bar> < \<epsilon>" "poly p x = (x - x\<^isub>0) * poly q \<xi>" 
-            by (auto simp add: q_def) 
-        moreover with \<epsilon>_props have "sgn (poly (pderiv p) \<xi>) = 
-            sgn (poly q x\<^isub>0)" by (auto simp: q_def)
-        ultimately show ?thesis using True `x \<noteq> x\<^isub>0` 
-            by (auto simp add: q_def sgn_mult)
-    next
-      case False
-        hence "x < x\<^isub>0" by simp
-        from poly_MVT[OF this, of p] guess \<xi> ..
-        with `\<bar>x - x\<^isub>0\<bar> < \<epsilon>` `poly p x\<^isub>0 = 0` `x < x\<^isub>0`
-        have "\<bar>\<xi> - x\<^isub>0\<bar> < \<epsilon>" "poly p x = (x - x\<^isub>0) * poly q \<xi>" 
-            by (auto simp add: q_def field_simps) 
-        moreover with \<epsilon>_props have "sgn (poly (pderiv p) \<xi>) = 
-            sgn (poly q x\<^isub>0)" by (auto simp: q_def)
-        ultimately show ?thesis using False `x \<noteq> x\<^isub>0` 
-            by (auto simp add: q_def sgn_mult) 
-    qed
-  qed
-
+  from sturm_firsttwo_signs[OF assms] 
+    show "\<And>x\<^isub>0. poly p x\<^isub>0 = 0 \<Longrightarrow>
+         eventually (\<lambda>x. sgn (poly (p*sturm p ! 1) x) = 
+                         (if x > x\<^isub>0 then 1 else -1)) (at x\<^isub>0)" by simp
 next
-  fix i x
-  assume A: "i < length (sturm p) - 2" and B: "poly (sturm p ! (i+1)) x = 0"
-  from sturm_indices[OF A] 
-      have "sturm p ! (i+2) = - (sturm p ! i mod sturm p ! (i+1))"
-           (is "?r = - (?p mod ?q)") .
-  hence "-?r = ?p mod ?q" by simp
-  with mod_div_equality[of ?p ?q] have "?p div ?q * ?q - ?r = ?p" by simp
-  hence "poly (?p div ?q) x * poly ?q x - poly ?r x = poly ?p x"
-      by (metis poly_diff poly_mult)
-  with B have C: "poly ?r x = -poly ?p x" by simp
-  moreover have sqr_pos: "\<And>x::real. x \<noteq> 0 \<Longrightarrow> x * x > 0" apply (case_tac "x \<ge> 0")
-      by (simp_all add: mult_pos_pos mult_neg_neg)
-  from sturm_adjacent_root_not_squarefree[of i p] assms A B C
-      have "poly ?p x * poly ?p x > 0" by (force intro: sqr_pos)
-  ultimately show "poly ?r x * poly ?p x < 0" by simp
+  from sturm_signs[OF assms]
+    show "\<And>i x. \<lbrakk>i < length (sturm p) - 2; poly (sturm p ! (i + 1)) x = 0\<rbrakk>
+          \<Longrightarrow> poly (sturm p ! (i + 2)) x * poly (sturm p ! i) x < 0" by simp
 qed
-
 
 
 definition sturm_squarefree where
@@ -934,7 +1040,6 @@ definition sturm_squarefree where
 
 lemma sturm_squarefree_not_Nil[simp]: "sturm_squarefree p \<noteq> []"
   by (simp add: sturm_squarefree_def)
-
 
 
 lemma sturm_seq_squarefree:
@@ -975,9 +1080,261 @@ proof
                                          poly (sturm_squarefree p ! i) x < 0" .
 
   from sturm_seq.deriv show "\<And>x\<^isub>0. poly p' x\<^isub>0 = 0 \<Longrightarrow>
-         eventually (\<lambda>x. sgn (poly (sturm_squarefree p ! 1) x) =
-                         sgn (x - x\<^isub>0) * sgn (poly p' x)) (at x\<^isub>0)" .
+         eventually (\<lambda>x. sgn (poly (p' * sturm_squarefree p ! 1) x) =
+                         (if x > x\<^isub>0 then 1 else -1)) (at x\<^isub>0)" .
 qed
+
+
+
+definition sturm_squarefree' where
+"sturm_squarefree' p = (let d = gcd p (pderiv p)
+                         in map (\<lambda>p'. p' div d) (sturm p))"
+
+
+(* TODO: Move *)
+lemma coprime_imp_no_common_roots:
+  assumes "coprime p q"
+  shows "\<And>x. \<not>(poly p x = 0 \<and> poly q x = 0)"
+proof(clarify)
+  fix x assume "poly p x = 0" "poly q x = 0"
+  hence "[:-x,1:] dvd p" "[:-x,1:] dvd q" 
+      by (simp_all add: poly_eq_0_iff_dvd)
+  hence "[:-x,1:] dvd gcd p q" by simp
+  hence "poly (gcd p q) x = 0" by (simp add: poly_eq_0_iff_dvd)
+  moreover from assms have "poly (gcd p q) x = 1" by simp
+  ultimately show False by simp
+qed
+
+lemma sturm_squarefree'_adjacent_root_propagate_left:
+  assumes "p \<noteq> 0"
+  assumes "i < length (sturm_squarefree' (p :: real poly)) - 1"
+  assumes "poly (sturm_squarefree' p ! i) x = 0"
+      and "poly (sturm_squarefree' p ! (i + 1)) x = 0"
+  shows "\<forall>j\<le>i+1. poly (sturm_squarefree' p ! j) x = 0"
+proof (intro sturm_adjacent_root_aux[OF assms(2,3,4)])
+  case (goal1 i x)
+    def q \<equiv> "sturm p ! i" 
+    def r \<equiv> "sturm p ! (Suc i)"
+    def s \<equiv> "sturm p ! (Suc (Suc i))"
+    def d \<equiv> "gcd p (pderiv p)"
+    def q' \<equiv> "q div d" and r' \<equiv> "r div d" and s' \<equiv> "s div d"
+    from `p \<noteq> 0` have "d \<noteq> 0" unfolding d_def by simp
+    from goal1(1) have i_in_range: "i < length (sturm p) - 2"
+        unfolding sturm_squarefree'_def Let_def by simp
+    have [simp]: "d dvd q" "d dvd r" "d dvd s" unfolding q_def r_def s_def d_def
+        using i_in_range by (auto intro: sturm_gcd)
+    hence qrs_simps: "q = q' * d" "r = r' * d" "s = s' * d" 
+        unfolding q'_def r'_def s'_def by (simp_all add: dvd_div_mult_self)
+    with goal1(2) i_in_range have r'_0: "poly r' x = 0" 
+        unfolding r'_def r_def d_def sturm_squarefree'_def Let_def by simp
+    hence r_0: "poly r x = 0" by (simp add: `r = r' * d`)
+    from sturm_indices[OF i_in_range] have "q = q div r * r - s"
+        unfolding q_def r_def s_def by (simp add: mod_div_equality)
+    hence "q' = (q div r * r - s) div d" by (simp add: q'_def)
+    also have "... = (q div r * r) div d - s'" 
+        unfolding s'_def by (rule div_diff[symmetric], simp_all)
+    also have "... = q div r * r' - s'"
+        using dvd_div_mult[OF `d dvd r`, of "q div r"] 
+        by (simp add: algebra_simps r'_def)
+    also have "q div r = q' div r'" by (simp add: qrs_simps `d \<noteq> 0`)
+    finally have "poly q' x = poly (q' div r' * r' - s') x" by simp
+    also from r'_0 have "... = -poly s' x" by simp
+    finally have "poly s' x = -poly q' x" by simp
+    thus ?case using i_in_range
+        unfolding q'_def s'_def q_def s_def sturm_squarefree'_def Let_def
+        by (simp add: d_def sgn_minus)
+qed
+
+lemma sturm_squarefree'_adjacent_roots:
+  assumes "p \<noteq> 0"
+           "i < length (sturm_squarefree' (p :: real poly)) - 1"
+          "poly (sturm_squarefree' p ! i) x = 0" 
+          "poly (sturm_squarefree' p ! (i + 1)) x = 0"
+  shows False
+proof-
+  def d \<equiv> "gcd p (pderiv p)"
+  from sturm_squarefree'_adjacent_root_propagate_left[OF assms]
+      have "poly (sturm_squarefree' p ! 0) x = 0" 
+           "poly (sturm_squarefree' p ! 1) x = 0" by auto
+  hence "poly (p div d) x = 0" "poly (pderiv p div d) x = 0"
+      using assms(2)
+      unfolding sturm_squarefree'_def Let_def d_def by auto
+  moreover from div_gcd_coprime_poly assms(1) 
+      have "coprime (p div d) (pderiv p div d)" unfolding d_def by auto
+  ultimately show False using coprime_imp_no_common_roots by auto
+qed
+
+lemma sturm_squarefree'_signs:
+  assumes "p \<noteq> 0"
+  assumes i_in_range: "i < length (sturm_squarefree' (p :: real poly)) - 2" 
+  assumes q_0: "poly (sturm_squarefree' p ! (i+1)) x = 0" (is "poly ?q x = 0")
+  shows "poly (sturm_squarefree' p ! (i+2)) x * 
+         poly (sturm_squarefree' p ! i) x < 0"
+            (is "poly ?r x * poly ?p x < 0")
+proof-
+  def d \<equiv> "gcd p (pderiv p)"
+  with `p \<noteq> 0` have [simp]: "d \<noteq> 0" by simp
+  from poly_div_gcd_squarefree(1)[OF `p \<noteq> 0`]
+       coprime_imp_no_common_roots
+      have rsquarefree: "rsquarefree (p div d)" 
+      by (auto simp: rsquarefree_roots d_def)
+
+  from i_in_range have i_in_range': "i < length (sturm p) - 2"
+      unfolding sturm_squarefree'_def by simp
+  hence "d dvd (sturm p ! i)" (is "d dvd ?p'")
+        "d dvd (sturm p ! (Suc i))" (is "d dvd ?q'")
+        "d dvd (sturm p ! (Suc (Suc i)))" (is "d dvd ?r'")
+      unfolding d_def by (auto intro: sturm_gcd)
+  hence pqr_simps: "?p' = ?p * d" "?q' = ?q * d" "?r' = ?r * d"
+    unfolding sturm_squarefree'_def Let_def d_def using i_in_range'
+    by (auto simp: dvd_div_mult_self) 
+  with q_0 have q'_0: "poly ?q' x = 0" by simp
+  from sturm_indices[OF i_in_range'] 
+      have "sturm p ! (i+2) = - (sturm p ! i mod sturm p ! (i+1))" .
+  hence "-?r' = ?p' mod ?q'" by simp
+  with mod_div_equality[of ?p' ?q'] have "?p' div ?q' * ?q' - ?r' = ?p'" by simp
+  hence "d*(?p div ?q * ?q - ?r) = d* ?p" by (simp add: pqr_simps algebra_simps)
+  hence "?p div ?q * ?q - ?r = ?p" by simp
+  hence "poly (?p div ?q) x * poly ?q x - poly ?r x = poly ?p x" 
+      by (metis poly_diff poly_mult)
+  with q_0 have r_x: "poly ?r x = -poly ?p x" by simp
+
+  from sturm_squarefree'_adjacent_roots[OF `p \<noteq> 0`] i_in_range q_0
+      have "poly ?p x \<noteq> 0" by force
+  moreover have sqr_pos: "\<And>x::real. x \<noteq> 0 \<Longrightarrow> x * x > 0" apply (case_tac "x \<ge> 0")
+      by (simp_all add: mult_pos_pos mult_neg_neg)
+  ultimately show ?thesis using r_x by simp
+qed
+
+lemma poly_lhopital:
+  assumes "poly p (x::real) = 0" "poly q x = 0" "q \<noteq> 0"
+  assumes "(\<lambda>x. poly (pderiv p) x / poly (pderiv q) x) -- x --> y"
+  shows "(\<lambda>x. poly p x / poly q x) -- x --> y"
+using assms
+proof (rule_tac lhopital)
+  have "isCont (poly p) x" "isCont (poly q) x" by simp_all
+  with assms(1,2) show "poly p -- x --> 0" "poly q -- x --> 0" 
+       by (simp_all add: isCont_def)
+  from `q \<noteq> 0` and `poly q x = 0` have "pderiv q \<noteq> 0"
+      by (auto dest: pderiv_iszero)
+  from poly_neighbourhood_without_roots[OF this]
+      show "eventually (\<lambda>x. poly (pderiv q) x \<noteq> 0) (at x)" .
+qed (auto intro: poly_DERIV poly_neighbourhood_without_roots)
+
+
+
+lemma sturm_seq_squarefree':
+  assumes "(p :: real poly) \<noteq> 0"
+  defines "d \<equiv> gcd p (pderiv p)"
+  shows "sturm_seq_squarefree (sturm_squarefree' p) (p div d)"
+      (is "sturm_seq_squarefree ?ps' ?p'")
+proof
+  show "?ps' \<noteq> []" "hd ?ps' = ?p'" "2 \<le> length ?ps'"
+      by (simp_all add: sturm_squarefree'_def d_def hd_map)
+
+  from assms have "d \<noteq> 0" by simp
+  {
+    have "d dvd last (sturm p)" unfolding d_def
+        by (rule sturm_gcd, simp)
+    hence "last (sturm p) = last ?ps' * d"
+        by (simp add: sturm_squarefree'_def last_map d_def dvd_div_mult_self)
+    moreover from this have "last ?ps' dvd last (sturm p)" by simp
+    moreover note dvd_imp_degree_le[OF this]
+    ultimately have "degree (last ?ps') \<le> degree (last (sturm p))" 
+        using `d \<noteq> 0` by (cases "last ?ps' = 0", auto)
+    hence "degree (last ?ps') = 0" by simp
+    then obtain c where "last ?ps' = [:c:]" 
+        by (cases "last ?ps'", simp split: split_if_asm)
+    thus "\<And>x y. sgn (poly (last ?ps') x) = sgn (poly (last ?ps') y)" by simp
+  }
+
+  have squarefree: "rsquarefree ?p'" using `p \<noteq> 0`
+    by (subst rsquarefree_roots, unfold d_def, 
+        intro allI coprime_imp_no_common_roots poly_div_gcd_squarefree)
+  have [simp]: "sturm_squarefree' p ! Suc 0 = pderiv p div d"
+      unfolding sturm_squarefree'_def Let_def sturm_def d_def
+          by (subst sturm_aux.simps, simp)
+  have coprime: "coprime ?p' (pderiv p div d)" 
+      unfolding d_def using div_gcd_coprime_poly `p \<noteq> 0` by blast
+  thus squarefree':
+      "\<And>x. \<not> (poly (p div d) x = 0 \<and> poly (sturm_squarefree' p ! 1) x = 0)"
+      using coprime_imp_no_common_roots by simp
+
+  from sturm_squarefree'_signs[OF `p \<noteq> 0`]
+      show "\<And>i x. \<lbrakk>i < length ?ps' - 2; poly (?ps' ! (i + 1)) x = 0\<rbrakk>
+                \<Longrightarrow> poly (?ps' ! (i + 2)) x * poly (?ps' ! i) x < 0" .
+
+  have [simp]: "?p' \<noteq> 0" using squarefree by (simp add: rsquarefree_def)
+  have A: "?p' = ?ps' ! 0" "pderiv p div d = ?ps' ! 1"
+      by (simp_all add: sturm_squarefree'_def Let_def d_def sturm_def,
+          subst sturm_aux.simps, simp)
+  have [simp]: "?ps' ! 0 \<noteq> 0" using squarefree
+      by (auto simp: A rsquarefree_def)
+
+  {
+    fix x\<^isub>0 :: real
+    assume "poly ?p' x\<^isub>0 = 0"
+    hence "poly p x\<^isub>0 = 0" using poly_div_gcd_squarefree(2)[OF `p \<noteq> 0`] 
+        unfolding d_def by simp
+    hence "pderiv p \<noteq> 0" using `p \<noteq> 0` by (auto dest: pderiv_iszero)
+    with `p \<noteq> 0` `poly p x\<^isub>0 = 0`
+        have A: "eventually (\<lambda>x. sgn (poly (p * pderiv p) x) = 
+                                (if x\<^isub>0 < x then 1 else -1)) (at x\<^isub>0)"
+        by (intro sturm_firsttwo_signs_aux, simp_all)
+    note ev = eventually_conj[OF A poly_neighbourhood_without_roots[OF `d \<noteq> 0`]]
+
+    show "eventually (\<lambda>x. sgn (poly (p div d * sturm_squarefree' p ! 1) x) =
+                          (if x\<^isub>0 < x then 1 else -1)) (at x\<^isub>0)"
+    proof (rule eventually_mono[OF _ ev], clarify)
+        have [intro]:
+            "\<And>a (b::real). b \<noteq> 0 \<Longrightarrow> a < 0 \<Longrightarrow> a / (b * b) < 0"
+            "\<And>a (b::real). b \<noteq> 0 \<Longrightarrow> a > 0 \<Longrightarrow> a / (b * b) > 0"
+            by ((case_tac "b > 0", 
+                auto simp: mult_pos_pos mult_neg_neg field_simps) [])+
+      case (goal1 x)
+        hence  [simp]: "poly d x * poly d x > 0" 
+             by (cases "poly d x > 0", auto simp: mult_pos_pos mult_neg_neg)
+        from poly_div_gcd_squarefree_aux(2)[OF `pderiv p \<noteq> 0`]
+            have "poly (p div d) x = 0 \<longleftrightarrow> poly p x = 0" by (simp add: d_def)
+        moreover have "d dvd p" "d dvd pderiv p" unfolding d_def by simp_all
+        ultimately show ?case using goal1
+            by (auto simp: sgn_real_def poly_div not_less[symmetric] 
+                           zero_less_divide_iff split: split_if_asm)
+    qed
+  }
+qed
+  
+
+lemma sturm_sturm_squarefree'_same_sign_changes:
+  assumes "poly p x \<noteq> 0 \<or> poly (pderiv p) x \<noteq> 0"
+  shows "sign_changes (sturm p) x = sign_changes (sturm_squarefree' p) x"
+proof-
+  let ?f = "\<lambda>ps. group (filter (\<lambda>x. x \<noteq> 0) (map (\<lambda>p. sgn (poly p x)) ps))"
+  let ?d = "gcd p (pderiv p)"
+  from assms have A: "poly (gcd p (pderiv p)) x \<noteq> 0"
+      by (simp add: poly_eq_0_iff_dvd)
+  hence B: "sgn (poly (gcd p (pderiv p)) x) \<noteq> 0" by (simp add: sgn_zero_iff)
+  have [simp]: "\<And>(x::real) y. sgn (x / y) = sgn (x * y)"
+    by (case_tac x rule: sgn_real_cases)
+       ((case_tac y rule: sgn_real_cases, 
+        simp_all add: field_simps sgn_mult) [])+
+  have C: "map (\<lambda>q. sgn (poly (q div ?d) x)) (sturm p) =
+           map (\<lambda>q. sgn (poly (q*?d) x)) (sturm p)"
+        by (auto simp: A field_simps poly_div[OF A sturm_gcd])
+  have D: "inj (\<lambda>s. s * sgn (poly ?d x))"
+      using B by (auto intro: injI simp: field_simps)
+  have "\<And>xs. group (map (\<lambda>q. sgn (poly q x) * sgn (poly ?d x)) xs) =
+         group (map (\<lambda>s. s * sgn (poly ?d x)) (map (\<lambda>q. sgn (poly q x)) xs))"
+      by (simp add: o_def)
+  also note group_map_injective[OF D]
+  finally have "length (?f (sturm p)) = length (?f (sturm_squarefree' p))"
+      by (simp add: sturm_squarefree'_def Let_def o_def B C 
+                    sgn_mult filter_map group_map_injective[OF D])
+  thus ?thesis
+      by (simp add: sturm_squarefree'_def Let_def sign_changes_def)
+qed
+
+  
 
 
 
