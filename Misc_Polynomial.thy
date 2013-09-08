@@ -405,11 +405,14 @@ qed
 
 
 
-definition poly_inf where 
+definition poly_inf :: "('a::real_normed_vector) poly \<Rightarrow> 'a" where 
   "poly_inf p \<equiv> sgn (coeff p (degree p))"
-definition poly_neg_inf where 
+definition poly_neg_inf :: "('a::real_normed_vector) poly \<Rightarrow> 'a" where 
   "poly_neg_inf p \<equiv> if even (degree p) then sgn (coeff p (degree p))
                                        else -sgn (coeff p (degree p))"
+lemma [simp]: "poly_inf p = 0 \<longleftrightarrow> p = 0" "poly_neg_inf p = 0 \<longleftrightarrow> p = 0"
+    by (auto simp: poly_inf_def poly_neg_inf_def sgn_zero_iff) 
+
  
 lemma poly_neq_0_at_infinity:
   assumes "(p :: real poly) \<noteq> 0"
@@ -745,6 +748,8 @@ lemma polys_inf_sign_thresholds:
   assumes "finite (ps :: real poly set)"
   obtains l u
   where "l \<le> u"
+    and "\<And>p. \<lbrakk>p \<in> ps; p \<noteq> 0\<rbrakk> \<Longrightarrow> 
+              {x. l < x \<and> x \<le> u \<and> poly p x = 0} = {x. poly p x = 0}"
     and "\<And>p x. \<lbrakk>p \<in> ps; x \<ge> u\<rbrakk> \<Longrightarrow> sgn (poly p x) = poly_inf p"
     and "\<And>p x. \<lbrakk>p \<in> ps; x \<le> l\<rbrakk> \<Longrightarrow> sgn (poly p x) = poly_neg_inf p"
 proof-
@@ -768,7 +773,20 @@ proof-
           by (rule exI[of _ "min l l'"], rule exI[of _ "max u u'"],
               insert lu_props l'_props u'_props, auto)
   qed
-  thus ?case using goal1 by blast
+  then obtain l u where lu_props: "l \<le> u"
+        "\<And>p x. p \<in> ps \<Longrightarrow> u \<le> x \<Longrightarrow> sgn (poly p x) = poly_inf p"
+        "\<And>p x. p \<in> ps \<Longrightarrow> x \<le> l \<Longrightarrow> sgn (poly p x) = poly_neg_inf p" by blast
+  moreover {
+    fix p x assume A: "p \<in> ps" "p \<noteq> 0" "poly p x = 0"
+    from A have "l < x" "x < u" 
+        by (auto simp: not_le[symmetric] dest: lu_props(2,3))
+  }
+  note A = this
+  have "\<And>p. p \<in> ps \<Longrightarrow> p \<noteq> 0 \<Longrightarrow> 
+                 {x. l < x \<and> x \<le> u \<and> poly p x = 0} = {x. poly p x = 0}" 
+      by (auto dest: A)
+
+  from goal1[OF lu_props(1) this lu_props(2,3)] show thesis .
 qed
 
 
