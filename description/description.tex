@@ -1,0 +1,144 @@
+\documentclass[11pt,a4paper,oneside]{article}
+\usepackage[english]{babel}
+
+\usepackage[utf8x]{inputenc} 
+\usepackage[T1]{fontenc}
+
+\usepackage{geometry} 
+\usepackage{color} 
+\usepackage{graphicx} 
+\usepackage{pifont} 
+\usepackage[babel]{csquotes}
+\usepackage{textcomp}
+\usepackage{upgreek}
+\usepackage{amsmath}
+\usepackage{textcomp}
+\usepackage{amssymb}
+\usepackage{latexsym}
+\usepackage{pgf}
+\usepackage{nicefrac}
+\usepackage{enumerate}
+
+\usepackage{tgpagella}
+
+\DeclareFontFamily{OT1}{pzc}{}
+\DeclareFontShape{OT1}{pzc}{m}{it}{<-> s * [1.10] pzcmi7t}{}
+\DeclareMathAlphabet{\mathpzc}{OT1}{pzc}{m}{it}
+\DeclareUnicodeCharacter{10230}{$\rightarrow$}
+
+\newcommand{\wuppdi}[0]{\hfill\ensuremath{\square}}
+\newcommand{\qed}[0]{\vspace{-3mm}\begin{flushright}\textit{q.e.d.}\end{flushright}\vspace{3mm}}
+\newcommand{\bred}{\ensuremath{\longrightarrow_\beta}}
+\newcommand{\acos}{\textrm{arccos}}
+\newcommand{\determ}[1]{\textrm{det}(#1)}
+\newcommand{\RR}{\mathbb{R}}
+\newcommand{\BB}{\mathbb{B}}
+\newcommand{\NN}{\mathbb{N}}
+\newcommand{\QQ}{\mathbb{Q}}
+\newcommand{\ZZ}{\mathbb{Z}}
+\newcommand{\CC}{\mathbb{C}}
+\newcommand{\II}{\mathbb{I}}
+\newcommand{\kernel}[1]{\textrm{ker}(#1)}
+\renewcommand{\epsilon}{\varepsilon}
+\renewcommand{\phi}{\varphi}
+\renewcommand{\theta}{\vartheta}
+\newcommand{\atan}{\mathrm{arctan}}
+\newcommand{\rot}{\mathrm{rot}}
+\newcommand{\vdiv}{\mathrm{div}}
+\newcommand{\shouldbe}{\stackrel{!}{=}}
+
+\newcommand{\isabellehol}{\mbox{Isabelle}\slash HOL}
+
+\geometry{a4paper,left=30mm,right=30mm, top=25mm, bottom=30mm} 
+
+\title{A Formalisation of Sturm Chains in \isabellehol}
+\author{Manuel Eberl}
+
+\begin{document}
+\maketitle
+\vskip-3mm
+
+\section{Background}
+
+\emph{\isabellehol} is an interactive theorem proving environment based on 
+\emph{Higher Order Logic}. The \isabellehol library already contains a 
+theory of univariate polynomials, including, in particular, differentiability. 
+Furthermore, all basic analysis, such as limits and the intermediate and mean value 
+theorem, are also available. Thus, most of the basic ingredients to 
+formalise Sturm's theorem are available.
+
+To explain the statement of Sturm's theorem in its most special case, 
+we will first introduce the notion of a Sturm sequence of a polynomial.\\
+Let $p\in\RR[X]$ that has no multiple real roots. The \emph{Sturm sequence}, 
+or \emph{Sturm chain}, of $p$ is then defined as the sequence 
+$p_0,p_1,\ldots p_n$ where:
+\begin{align*}
+&&\mathrm{where}\quad &p_i = \begin{cases}
+\hskip3mm p & \mathrm{for}\ i = 0\\
+\hskip3mm p' & \mathrm{for}\ i = 1\\
+-p_{i-2}\ \mathrm{mod}\ p_{i-1} &\mathrm{otherwise}
+\end{cases}&\\[2mm]
+&&\mathrm{and}\quad &n=\mathrm{min} \{i\in\NN\ |\ \mathrm{degree}(p_i) \leq 0\}&
+\end{align*}
+
+Further, let $\sigma(x)$ denote the number of sign changes in the sequence 
+$p_0(x), p_1(x), \ldots, p_n(x)$ for any $x \in \RR$. 
+By \enquote{sign change}, we mean that a sign at one position is $-1$ and at the 
+next position, skipping all zeroes, the sign is $1$, or vice versa.
+
+Sturm's theorem now states that for $a,b\in\RR$ with $a\leq b$, the number of 
+real roots of $p$ in the interval $(a;b]$ is $\sigma(a)-\sigma(b)$.\footnote{
+Since $p$ was assumed to not have multiple roots, multiplicity is not relevant 
+for counting here.}
+
+Based on this, a number of generalisations can be used to count roots of 
+polynomials with multiple roots as well, and furthermore, the total number of 
+real roots can be determined by using $\lim_{x\to\pm\infty} \sigma(x)$, which 
+can be determined by looking at the leading coefficient of the polynomials in 
+the chain.
+
+\section{Goal}
+
+The goal is to formulise Sturm's theorem and its aforementioned generalisations 
+in \emph{\isabellehol}. The result should be an executable function for 
+determining the number of roots of a polynomial. Such a function can be 
+exported to a programming language such as ML or Haskell using Isabelle's 
+code generator, or it can be used to implement a decision procedure fo the 
+number of roots of a polynomial directly in Isabelle.
+
+One example for which such a decision procedure would be useful is the 
+formalisation of algorithms for numerical approximation; for instance, there 
+exists a formalisation of an algorithm for approximating the $\exp$ function 
+that requires the fact that the polynomial 
+$$\frac{1}{120}x^5+\frac{1}{24}x^4+\frac{1}{6}x^3-\frac{49}{16777216}x^2-\frac{17}{2097152}x$$
+has exactly three roots in the interval $(-0.010831,0.010831)$. In Isabelle, this 
+is written as:
+
+\vspace*{-5mm}
+\begin{align*}
+&\textbf{lemma} "\mathrm{card}\ \{x::\mathrm{real}. -0.010831 < x\ \wedge\ x < 0.010831\ \wedge\\
+&\hskip20mm \mathrm{poly}\ [:0, -17/2097152, -49/16777216, 1/6, 1/24, 1/120:]\ \ x\ =\ 0\} = 3"
+\end{align*}
+
+This fact is readily checkable with any computer algebra system, but was, so far, 
+unfeasible to prove in Isabelle. We aim to be able to prove statements like these 
+with our proof method derived from our formalisation of Sturm chains.
+
+
+\section{Work outline}
+We estimate that the work to be done is the following:
+\begin{itemize}
+\item Define, with enough generality to allow for later generalisations and optimisations, what 
+      properties a general Sturm chain must fulfil
+\item Prove that a chain fulfilling these requirements can indeed by used to count roots
+\item Prove that the various canonical and non-canonical sturm chains fulfil these requirements
+\item Prove that one can determine the signs of polynomials for sufficiently large arguments by 
+      looking at the leading coefficients (this may require extension of the Polynomial library,
+      since no lemmas about limits of polynomials exist so far)
+\item Use these definitions and proofs to implement a decision procedure as described above and 
+      integrate it with Isabelle
+\end{itemize}
+
+
+\end{document}
+
