@@ -38,6 +38,9 @@ lemma group_set[simp]: "set (group xs) = set xs"
 lemma group_Cons_alt[simp]: "x # tl (group (x # xs)) = group (x # xs)"
     by (induction xs rule: group.induct, auto)
 
+lemma group_distinct: "distinct xs \<Longrightarrow> group xs = xs"
+    by (induction xs rule: group.induct, simp_all)
+
 lemma group_append: 
   "group (xs\<^sub>1 @ x # xs\<^sub>2) = group (xs\<^sub>1 @ [x]) @ tl (group (x # xs\<^sub>2))"
   by (induction xs\<^sub>1 rule: group.induct, simp_all)

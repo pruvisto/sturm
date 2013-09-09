@@ -49,5 +49,46 @@ proof-
       by (cases "a < b", auto simp: real_infinite_interval card_eq_0_iff)
 qed
 
+lemma real_nat_one_half[dest]:
+  "(n::nat) = (m::nat) - 1/2 \<Longrightarrow> False"
+  "(n::nat) = (m::nat) + 1/2 \<Longrightarrow> False"
+proof-
+  assume "(n::nat) = (m::nat) - 1/2" 
+  hence "2*(n - m) = 1" by linarith 
+  thus False by simp
+next
+  assume "(n::nat) = (m::nat) + 1/2" 
+  hence "2*(n - m) = 1" by linarith 
+  thus False by simp
+qed
+
+lemma natfun_eq_in_ivl:
+  assumes "a \<le> b"
+  assumes "\<forall>x::real. a \<le> x \<and> x \<le> b \<longrightarrow> eventually (\<lambda>\<xi>. f \<xi> = (f x::nat)) (at x)"
+  shows "f a = f b"
+proof-
+  have cont: "\<forall>x. a \<le> x \<and> x \<le> b \<longrightarrow> isCont f x"
+  proof (clarify, simp add: isCont_def, rule tendstoI, simp add: dist_real_def)
+    fix \<epsilon> :: real and x :: real assume "\<epsilon> > 0" and  "a \<le> x" "x \<le> b"
+    with assms have A: "eventually (\<lambda>\<xi>. f \<xi> = (f x::nat)) (at x)" by simp
+    show "eventually (\<lambda>\<xi>. \<bar>real (f \<xi>) - real (f x)\<bar> < \<epsilon>) (at x)"
+        by (rule eventually_mono[OF _ A], simp add: `\<epsilon> > 0`)
+  qed
+
+  {
+    def y \<equiv> "f a + 1/2"
+    assume "f a < f b"
+    hence "f a \<le> y" "y \<le> f b" by (simp_all add: y_def)
+    with IVT[OF this `a \<le> b` cont] have False by (auto simp: y_def)
+  }
+  moreover
+  {
+    def y \<equiv> "f a - 1/2"
+    assume "f a > f b"
+    hence "f b \<le> y" "y \<le> f a" by (simp_all add: y_def)
+    with IVT2[OF this `a \<le> b` cont] have False by (auto simp: y_def)
+  }
+  ultimately show "f a = f b" by force
+qed
 
 end

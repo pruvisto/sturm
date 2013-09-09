@@ -51,6 +51,9 @@ qed
 
 section {* Divisibility of polynomials *}
 
+text {*
+  Two polynomials that are coprime have no common roots.
+*}
 lemma coprime_imp_no_common_roots:
   assumes "coprime p q"
   shows "\<And>x. \<not>(poly p x = 0 \<and> poly q x = 0)"
@@ -64,6 +67,9 @@ proof(clarify)
   ultimately show False by simp
 qed
 
+text {*
+  Dividing two polynomials by their gcd makes them coprime.
+*}
 lemma div_gcd_coprime_poly:
   assumes "(p :: ('a::field) poly) \<noteq> 0 \<or> q \<noteq> 0" 
   defines [simp]: "d \<equiv> gcd p q"
@@ -101,26 +107,51 @@ proof-
       using assms by (simp add: field_simps)
 qed
 
-lemma poly_gcd_extended_euclidean:
-  "\<exists>r s. gcd (p::('a::field) poly) q = r*p+s*q"
-proof (induction rule: gcd_poly.induct)
+
+text {*
+  A function that gives witnesses for Bezout's lemma for polynomials.
+*}
+function bezw_poly where
+  "bezw_poly (p::('a::field) poly) q = 
+      (if q = 0 then ([:inverse (coeff p (degree p)):], 0)
+                else (case bezw_poly q (p mod q) of 
+                        (r,s) \<Rightarrow> (s, r - s * (p div q))))"
+by (pat_completeness, simp_all)
+termination by (relation "measure (\<lambda>(x, y). if y = 0 then 0 else Suc (degree y))")
+               (auto dest: degree_mod_less)
+declare bezw_poly.simps[simp del]
+
+text {*
+  Bezout's lemma for polynomials.
+*}
+lemma bezout_poly:
+  "gcd p q = fst (bezw_poly p q) * p + snd (bezw_poly p q) * q"
+proof (induction p q rule: gcd_poly.induct)
   case (goal1 p)
-    let ?r = "[:inverse (coeff p (degree p)):]"
-    show ?case by (rule exI[of _ ?r], rule exI[of _ 1], 
-                   simp add: gcd_poly.simps(1))
+    show ?case by (subst bezw_poly.simps, simp add: gcd_poly.simps(1))
 next
   case (goal2 q p)
-    from this(2) obtain r s where 
-        "gcd q (p mod q) = r * q + s * (p mod q)" by blast
-    also from goal2 have "gcd q (p mod q) = gcd p q" 
-        by (simp add: gcd_poly.simps)
-    also from mod_div_equality[of p q] 
-        have "p mod q = p - p div q * q" by (simp add: algebra_simps)
-    finally have "gcd p q = s * p + (r - s * (p div q)) * q"
-        by (simp add: algebra_simps)
-    thus ?case by blast
+    let ?b = "bezw_poly q (p mod q)"
+    let ?b' = "bezw_poly p q"
+    
+    from goal2 have b'_b: "fst ?b' = snd ?b" 
+                          "snd ?b' = fst ?b - snd ?b * (p div q)"
+        by (subst bezw_poly.simps, simp split: prod.split)+
+    hence "fst ?b' * p + snd ?b' * q =
+                snd ?b * p + (fst ?b - snd ?b * (p div q)) * q" by simp
+    also have "... = fst ?b * q + snd ?b * (p - p div q * q)" 
+        by (simp add: algebra_simps) 
+    also have "p - p div q * q = p mod q" 
+        using mod_div_equality[of p q] by (simp add: algebra_simps)
+    also have "fst ?b * q + snd ?b * (p mod q) = gcd q (p mod q)"
+        using goal2 by simp
+    also have "... = gcd p q"
+        using goal2 by (subst gcd_poly.simps(2)[of q p], simp_all)
+    finally show ?case ..
 qed
 
+lemma bezout_poly': "\<exists>r s. gcd (p::('a::field) poly) q = r*p+s*q"
+    using bezout_poly by blast
 
 
 (* TODO: make this less ugly *)
@@ -130,90 +161,90 @@ lemma poly_div_gcd_squarefree_aux:
   shows "coprime (p div d) (pderiv (p div d))" and
         "\<And>x. poly (p div d) x = 0 \<longleftrightarrow> poly p x = 0"
 proof-
-  from poly_gcd_extended_euclidean 
-    obtain r s where rs: "d = r * p + s * pderiv p" unfolding d_def by blast
+  from bezout_poly' obtain r s where rs: "d = r * p + s * pderiv p" 
+      unfolding d_def by blast
   def t \<equiv> "p div d" 
-  def u \<equiv> "pderiv p div d"
-  have A: "p = t * d" and B: "pderiv p = u * d" 
+  def [simp]: p' \<equiv> "pderiv p"
+  def [simp]: d' \<equiv> "pderiv d"
+  def u \<equiv> "p' div d"
+  have A: "p = t * d" and B: "p' = u * d" 
       by (simp_all add: t_def u_def dvd_mult_div_cancel d_def algebra_simps)
-  from poly_squarefree_decomp[OF assms(1) A B rs]
+  from poly_squarefree_decomp[OF assms(1) A B[unfolded p'_def] rs]
       show "\<And>x. poly (p div d) x = 0 \<longleftrightarrow> poly p x = 0" by (auto simp: t_def)
 
-  from rs have C: "s*t*pderiv d = d * (1 - r*t - s*pderiv t)" 
+  from rs have C: "s*t*d' = d * (1 - r*t - s*pderiv t)" 
       by (simp add: A B algebra_simps pderiv_mult)
-  from assms have "p \<noteq> 0" "d \<noteq> 0" "t \<noteq> 0" 
+  from assms have [simp]: "p \<noteq> 0" "d \<noteq> 0" "t \<noteq> 0" 
       by (force, force, subst (asm) A, force)
-  {
+
+  have "\<And>x. \<lbrakk>x dvd t; x dvd (pderiv t)\<rbrakk> \<Longrightarrow> x dvd 1"
+  proof-
     fix x assume "x dvd t" "x dvd (pderiv t)"
     then obtain v w where vw: 
         "t = x*v" "pderiv t = x*w" unfolding dvd_def by blast
-    hence "x*pderiv v + v*pderiv x = x*w" by (simp add: pderiv_mult)
-    hence "v*pderiv x = x*(w - pderiv v)" by (simp add: algebra_simps)
+    def [simp]: x' \<equiv> "pderiv x" and [simp]: v' \<equiv> "pderiv v"
+    from vw have "x*v' + v*x' = x*w" by (simp add: pderiv_mult)
+    hence "v*x' = x*(w - v')" by (simp add: algebra_simps)
     hence "x dvd v*pderiv x" by simp
-    then obtain y where y: "v*pderiv x = x*y" unfolding dvd_def by blast
+    then obtain y where y: "v*x' = x*y" unfolding dvd_def by force
     from `t \<noteq> 0` and vw have "x \<noteq> 0" by simp
 
-    {
-      fix n
-      have "x ^ n dvd d"
-      proof (induction n)
-        case 0 show ?case by simp
+    have x_pow_n_dvd_d: "\<And>n. x^n dvd d"
+    proof-
+      fix n show "x ^ n dvd d"
+      proof (induction n, simp, rename_tac n, case_tac n)
+        fix n assume "n = (0::nat)"
+        from vw and C have "d = x*(d*r*v + d*s*w + s*v*d')" 
+            by (simp add: algebra_simps)
+        with `n = 0` show "x^Suc n dvd d" by (force intro: dvdI)
       next
-        case (Suc n)
-          note IH = this
-          show ?case
-          proof (cases n)
-            case 0
-              from vw and C have "d = x*(d*r*v + d*s*w + s*v*pderiv d)" 
-                by (simp add: algebra_simps)
-              thus ?thesis by (simp add: 0, metis dvd_triv_left)
-          next
-            case (Suc n')
-              hence [simp]: "Suc n' = n" "x * x^n' = x^n" by simp_all
-              def c \<equiv> "[:of_nat n:] :: 'a poly"
-              from pderiv_power_Suc[of x n']
-                  have [simp]: "pderiv (x^n) = c*x^n' * pderiv x" unfolding c_def 
-                  by (simp add: real_eq_of_nat)
-              from IH obtain z where d: "d = x^n * z" unfolding dvd_def by blast
-              with `d \<noteq> 0` have "x^n \<noteq> 0" "z \<noteq> 0" by force+
-              from C d have "x^n*z = z*r*v*x^Suc n + 
-                                     z*s*c*x^n*(v*pderiv x) +
-                                     s*v*pderiv z*x^Suc n + 
-                                     s*z*(v*pderiv x)*x^n +
-                                     s*z*pderiv v*x^Suc n"      
-                by (simp add: algebra_simps vw pderiv_mult)
-               also have "... = x^n*(x * (z*r*v + z*s*c*y + s*v*pderiv z +
-                                              s*z*y + s*z*pderiv v))"
-                   by (simp only: y, simp add: algebra_simps)
-               finally have "z = x*(z*r*v+z*s*c*y+s*v*pderiv z+
-                                     s*z*y+s*z*pderiv v)"
-                   using `x^n \<noteq> 0` by force
-               hence "x dvd z" by (metis dvd_triv_left) 
-               with d show "x^Suc n dvd d" by simp
-          qed
-      qed
-   } note D = this
-   hence "degree x = 0" 
+        fix n n' assume IH: "x^n dvd d" and "n = Suc n'"
+        hence [simp]: "Suc n' = n" "x * x^n' = x^n" by simp_all
+        def c \<equiv> "[:of_nat n:] :: 'a poly"
+        from pderiv_power_Suc[of x n']
+            have [simp]: "pderiv (x^n) = c*x^n' * x'" unfolding c_def 
+            by (simp add: real_eq_of_nat)
+
+        from IH obtain z where d: "d = x^n * z" unfolding dvd_def by blast
+        def [simp]: z' \<equiv> "pderiv z"
+        from d `d \<noteq> 0` have "x^n \<noteq> 0" "z \<noteq> 0" by force+
+        from C d have "x^n*z = z*r*v*x^Suc n + z*s*c*x^n*(v*x') +
+                          s*v*z'*x^Suc n + s*z*(v*x')*x^n + s*z*v'*x^Suc n"
+            by (simp add: algebra_simps vw pderiv_mult)
+        also have "... = x^n*(x * (z*r*v + z*s*c*y + s*v*z' + s*z*y + s*z*v'))"
+            by (simp only: y, simp add: algebra_simps)
+        finally have "z = x*(z*r*v+z*s*c*y+s*v*z'+s*z*y+s*z*v')"
+             using `x^n \<noteq> 0` by force
+        hence "x dvd z" by (metis dvd_triv_left) 
+        with d show "x^Suc n dvd d" by simp
+     qed
+   qed
+
+   have "degree x = 0" 
    proof (cases "degree x", simp)
      case (Suc n)
        hence "x \<noteq> 0" by auto
        with Suc have "degree (x ^ (Suc (degree d))) > degree d" 
            by (subst degree_power_eq, simp_all)
-       moreover from D[of "Suc (degree d)"] and `d \<noteq> 0`
+       moreover from x_pow_n_dvd_d[of "Suc (degree d)"] and `d \<noteq> 0`
            have "degree (x^Suc (degree d)) \<le> degree d" 
                 by (simp add: dvd_imp_degree_le)
        ultimately show ?thesis by simp
     qed
     then obtain c where [simp]: "x = [:c:]" by (cases x, simp split: split_if_asm)
     moreover from `x \<noteq> 0` have "c \<noteq> 0" by simp
-    ultimately have "x dvd 1" using dvdI[of 1 x "[:inverse c:]"] 
+    ultimately show "x dvd 1" using dvdI[of 1 x "[:inverse c:]"] 
         by (simp add: one_poly_def)
-  } note E = this
+  qed
 
-  show "coprime t (pderiv t)"
-      by (force intro: poly_gcd_unique[of 1 t "pderiv t"] E simp:`t \<noteq> 0`)
+  thus "coprime t (pderiv t)"
+      by (force intro: poly_gcd_unique[of 1 t "pderiv t"])
 qed
 
+text {*
+  Dividing a polynomial by its gcd with its derivative yields 
+  a squarefree polynomial with the same roots.
+*}
 lemma poly_div_gcd_squarefree:
   assumes "(p :: ('a::real_normed_field) poly) \<noteq> 0"
   defines "d \<equiv> gcd p (pderiv p)"
@@ -243,6 +274,9 @@ qed
 
 section {* Sign changes of a polynomial *}
 
+text {*
+  If a polynomial has different signs at a position, it has a root inbetween.
+*}
 lemma poly_different_sign_imp_root:
   assumes "a < b" and "sgn (poly p a) \<noteq> sgn (poly p (b::real))"
   shows "\<exists>x. a \<le> x \<and> x \<le> b \<and> poly p x = 0"
@@ -410,8 +444,17 @@ definition poly_inf :: "('a::real_normed_vector) poly \<Rightarrow> 'a" where
 definition poly_neg_inf :: "('a::real_normed_vector) poly \<Rightarrow> 'a" where 
   "poly_neg_inf p \<equiv> if even (degree p) then sgn (coeff p (degree p))
                                        else -sgn (coeff p (degree p))"
-lemma [simp]: "poly_inf p = 0 \<longleftrightarrow> p = 0" "poly_neg_inf p = 0 \<longleftrightarrow> p = 0"
+lemma poly_inf_0_iff[simp]: 
+    "poly_inf p = 0 \<longleftrightarrow> p = 0" "poly_neg_inf p = 0 \<longleftrightarrow> p = 0"
     by (auto simp: poly_inf_def poly_neg_inf_def sgn_zero_iff) 
+
+lemma poly_inf_mult[simp]: 
+  fixes p :: "('a::real_normed_field) poly"
+  shows "poly_inf (p*q) = poly_inf p * poly_inf q"
+        "poly_neg_inf (p*q) = poly_neg_inf p * poly_neg_inf q"
+unfolding poly_inf_def poly_neg_inf_def
+by ((cases "p = 0 \<or> q = 0",auto simp: sgn_zero_iff
+         degree_mult_eq[of p q] coeff_mult_degree_sum sgn_mult)[])+
 
  
 lemma poly_neq_0_at_infinity:
@@ -437,77 +480,136 @@ proof-
   qed
 qed
 
+
+lemma x_pow_n_limit: 
+  assumes "n \<ge> 1"
+  shows "LIM (x::real) at_top. x^n :> at_top"
+proof (simp only: filterlim_at_top eventually_at_top_linorder, clarify)
+  fix b :: real
+  let ?x\<^sub>0 = "max b 1"
+  show "\<exists>x\<^sub>0. \<forall>x\<ge>x\<^sub>0. x ^ n \<ge> b"
+  proof (rule exI[of _ ?x\<^sub>0], clarify)
+    fix x assume "x \<ge> max b 1"
+    have "b \<le> ?x\<^sub>0" by simp
+    also from power_increasing[OF assms, of ?x\<^sub>0] 
+        have "... \<le> ?x\<^sub>0 ^ n" by simp
+    also from power_mono[OF `x \<ge> ?x\<^sub>0`] have "... \<le> x ^ n" by simp
+    finally show "b \<le> x ^ n" .
+  qed
+qed
+
+lemma x_pow_n_limit_at_top: 
+  assumes "n \<ge> 1"
+  shows "LIM (x::real) at_top. x^n :> at_top"
+proof (simp only: filterlim_at_top eventually_at_top_linorder, clarify)
+  fix b :: real
+  let ?x\<^sub>0 = "max b 1"
+  show "\<exists>x\<^sub>0. \<forall>x\<ge>x\<^sub>0. x ^ n \<ge> b"
+  proof (rule exI[of _ ?x\<^sub>0], clarify)
+    fix x assume "x \<ge> max b 1"
+    have "b \<le> ?x\<^sub>0" by simp
+    also from power_increasing[OF assms, of ?x\<^sub>0] 
+        have "... \<le> ?x\<^sub>0 ^ n" by simp
+    also from power_mono[OF `x \<ge> ?x\<^sub>0`] have "... \<le> x ^ n" by simp
+    finally show "b \<le> x ^ n" .
+  qed
+qed
+
+lemma x_pow_n_limit_at_bot[intro]: 
+  assumes "n \<ge> 1"
+  shows "even n \<Longrightarrow> LIM (x::real) at_bot. x^n :> at_top"
+    and "odd n \<Longrightarrow> LIM (x::real) at_bot. x^n :> at_bot"
+proof-
+  assume "even n"
+  show "LIM (x::real) at_bot. x^n :> at_top"
+  proof (subst filterlim_cong, rule refl, rule refl)
+    from `even n` show "eventually (\<lambda>x::real. x^n = (-x)^n) at_bot" 
+        by (simp add: neg_power_if)
+    show "LIM (x::real) at_bot. (-x)^n :> at_top" using assms
+        by (simp add: filterlim_at_bot_mirror x_pow_n_limit_at_top)
+  qed
+next
+  assume "odd n"
+  show "LIM (x::real) at_bot. x^n :> at_bot"
+  proof (subst filterlim_cong, rule refl, rule refl)
+    from `odd n` show "eventually (\<lambda>x::real. x^n = -((-x)^n)) at_bot" 
+        by (simp add: neg_power_if)
+    show "LIM (x::real) at_bot. -((-x)^n) :> at_bot" using assms
+        by (simp add: filterlim_at_bot_mirror filterlim_uminus_at_bot 
+                      x_pow_n_limit_at_top)
+  qed
+qed
+
+
+
+lemma poly_limit_aux:
+  fixes p :: "real poly"
+  defines "n \<equiv> degree p"
+  shows "((\<lambda>x. poly p x / x ^ n) ---> coeff p n) at_infinity"
+proof (subst filterlim_cong, rule refl, rule refl)
+  show "eventually (\<lambda>x. poly p x / x^n = (\<Sum>i\<le>n. coeff p i / x^(n-i))) 
+            at_infinity"
+  proof (rule eventually_mono, clarify)
+    show "eventually (\<lambda>x::real. x \<noteq> 0) at_infinity"
+        by (simp add: eventually_at_infinity, rule exI[of _ 1], auto)
+    fix x :: real assume [simp]: "x \<noteq> 0"
+    show "poly p x / x ^ n = (\<Sum>i\<le>n. coeff p i / x ^ (n - i))"
+        by (simp add: n_def setsum_divide_distrib power_diff poly_altdef)
+  qed
+
+  let ?a = "\<lambda>i. if i = n then coeff p n else 0"
+  have "\<forall>i\<in>{..n}. ((\<lambda>x. coeff p i / x ^ (n - i)) ---> ?a i) at_infinity"
+  proof
+    fix i assume "i \<in> {..n}"
+    hence "i \<le> n" by simp
+    show "((\<lambda>x. coeff p i / x ^ (n - i)) ---> ?a i) at_infinity"
+    proof (cases "i = n")
+      case True 
+        thus ?thesis by (intro tendstoI, subst eventually_at_infinity,
+                         intro exI[of _ 1], simp add: dist_real_def)
+    next
+      case False
+        hence "n - i > 0" using `i \<le> n` by simp
+        from tendsto_inverse_0 and divide_real_def[of 1]
+            have "((\<lambda>x. 1 / x :: real) ---> 0) at_infinity" by simp
+        from tendsto_power[OF this, of "n - i"]
+            have "((\<lambda>x::real. 1 / x ^ (n - i)) ---> 0) at_infinity" 
+                using `n - i > 0` by (simp add: power_0_left power_one_over)
+        from tendsto_mult_right_zero[OF this, of "coeff p i"]
+            have "((\<lambda>x. coeff p i / x ^ (n - i)) ---> 0) at_infinity"
+                by (simp add: field_simps)
+        thus ?thesis using False by simp
+    qed
+  qed
+  hence "((\<lambda>x. \<Sum>i\<le>n. coeff p i / x^(n-i)) ---> (\<Sum>i\<le>n. ?a i)) at_infinity"
+      by (force intro: tendsto_setsum)
+  also have "(\<Sum>i\<le>n. ?a i) = coeff p n" by (subst setsum_delta, simp_all)
+  finally show "((\<lambda>x. \<Sum>i\<le>n. coeff p i / x^(n-i)) ---> coeff p n) at_infinity" .
+qed
+
+
+
 lemma poly_at_top_at_top:
   fixes p :: "real poly"
   assumes "degree p \<ge> 1" "coeff p (degree p) > 0"
   shows "LIM x at_top. poly p x :> at_top"
 proof-
   let ?n = "degree p"
-  let ?f = "\<lambda>x::real. (\<Sum>i\<le>?n. coeff p i / x ^ (?n - i))"
-  let ?g = "\<lambda>x::real. x ^ ?n"
-  {
-    fix x :: real assume [simp]: "x > 0"
-    hence [simp]: "x \<noteq> 0" by arith
-    hence "poly p x = ?f x * ?g x" 
-        by (simp add: poly_altdef field_simps setsum_right_distrib power_diff)
-  }
-  
-  have g_limit: "LIM x at_top. ?g x :> at_top" 
-  proof (simp only: filterlim_at_top eventually_at_top_linorder, clarify)
-    fix b :: real
-    let ?x\<^sub>0 = "max b 1"
-    show "\<exists>x\<^sub>0. \<forall>x\<ge>x\<^sub>0. x ^ degree p \<ge> b"
-    proof (rule exI[of _ ?x\<^sub>0], clarify)
-      fix x assume "x \<ge> max b 1"
-      have "b \<le> ?x\<^sub>0" by simp
-      also from power_increasing[OF assms(1), of ?x\<^sub>0] 
-          have "... \<le> ?x\<^sub>0 ^ ?n" by simp
-      also from power_mono[OF `x \<ge> ?x\<^sub>0`] have "... \<le> x ^ ?n" by simp
-      finally show "b \<le> x ^ ?n" .
-    qed
-  qed
+  def f \<equiv> "\<lambda>x::real. poly p x / x^?n" and g \<equiv> "\<lambda>x::real. x ^ ?n"
 
-  let ?a = "\<lambda>i. if i = ?n then coeff p ?n else 0"
-  {
-    fix i assume "i \<in> {..?n}"
-    hence "i \<le> ?n" by simp
-    have "((\<lambda>x. coeff p i / x ^ (?n - i)) ---> ?a i) at_top"
-    proof (cases "i = ?n")
-      case True 
-        thus ?thesis by (intro tendstoI, subst eventually_at_top_linorder, 
-                         intro exI[of _ 1], clarsimp simp: dist_real_def)
-    next
-      case False
-        hence "?n - i > 0" using `i \<le> ?n` by simp
-        have "filterlim (id :: real \<Rightarrow> real) at_top at_top"
-            by (force simp: filterlim_at_top eventually_at_top_linorder)
-        from tendsto_inverse_0_at_top[OF this] and divide_real_def[of 1]
-            have "((\<lambda>x. 1 / x :: real) ---> 0) at_top" by simp
-        from tendsto_power[OF this, of "?n - i"]
-            have "((\<lambda>x::real. 1 / x ^ (?n - i)) ---> 0) at_top" 
-                using `?n - i > 0` by (simp add: power_0_left power_one_over)
-        from tendsto_mult_right_zero[OF this, of "coeff p i"]
-            have "((\<lambda>x. coeff p i / x ^ (degree p - i)) ---> 0) at_top"
-                by (simp add: field_simps)
-        thus ?thesis using False by simp
-    qed
-  }
-  from tendsto_setsum[of "{..?n}" "\<lambda>i x. coeff p i / x ^ (?n - i)", OF this]
-      have "(?f ---> (\<Sum>i\<le>degree p. ?a i)) at_top" by simp
-  also have "(\<Sum>i\<le>?n. ?a i) = coeff p ?n"
-       by (subst setsum.delta, simp_all)
-  finally have f_tendsto: "(?f ---> coeff p (degree p)) at_top" .
-
-  from filterlim_tendsto_pos_mult_at_top[OF f_tendsto assms(2) g_limit]
-      have fg_limit: "LIM x at_top. ?f x * ?g x :> at_top" .
-  also have "eventually (\<lambda>x. ?f x * ?g x = poly p x) at_top"
+  from poly_limit_aux have "(f ---> coeff p (degree p)) at_top"
+      using tendsto_mono at_top_le_at_infinity unfolding f_def by blast
+  moreover from x_pow_n_limit_at_top assms 
+      have "LIM x at_top. g x :> at_top" by (simp add: g_def)
+  ultimately have "LIM x at_top. f x * g x :> at_top"
+      using filterlim_tendsto_pos_mult_at_top assms by simp
+  also have "eventually (\<lambda>x. f x * g x = poly p x) at_top"
+      unfolding f_def g_def
       by (subst eventually_at_top_linorder, rule exI[of _ 1],
           simp add: poly_altdef field_simps setsum_right_distrib power_diff)
   note filterlim_cong[OF refl refl this]
   finally show ?thesis .
 qed
-
-
 
 lemma poly_at_bot_at_top:
   fixes p :: "real poly"
@@ -555,104 +657,25 @@ next
     qed
 qed
 
-
-
 lemma poly_at_top_or_bot_at_bot:
   fixes p :: "real poly"
   assumes "degree p \<ge> 1" "coeff p (degree p) > 0"
   shows "LIM x at_bot. poly p x :> (if even (degree p) then at_top else at_bot)"
 proof-
   let ?n = "degree p"
-  let ?f = "\<lambda>x::real. (\<Sum>i\<le>?n. coeff p i / x ^ (?n - i))"
-  let ?g = "\<lambda>x::real. x ^ ?n"
-  {
-    fix x :: real assume [simp]: "x > 0"
-    hence [simp]: "x \<noteq> 0" by arith
-    hence "poly p x = ?f x * ?g x" 
-        by (simp add: poly_altdef field_simps setsum_right_distrib power_diff)
-  }
+  def f \<equiv> "\<lambda>x::real. poly p x / x ^ ?n" and g \<equiv> "\<lambda>x::real. x ^ ?n"
   
-  have g_limit: "LIM x at_bot. ?g x :> 
-                     (if even (degree p) then at_top else at_bot)"
-  proof (cases "even (degree p)", 
-         simp_all add: filterlim_at_top filterlim_at_bot 
-                        eventually_at_bot_linorder)
-    case True
-      thus "\<forall>b::real. \<exists>x\<^sub>0. \<forall>x\<le>x\<^sub>0. b \<le> x ^ ?n"
-      proof (clarify)
-        fix b :: real
-        let ?x\<^sub>0 = "-max b 1"
-        show "\<exists>x\<^sub>0. \<forall>x\<le>x\<^sub>0. b \<le> x ^ ?n"
-        proof (rule exI[of _ ?x\<^sub>0], clarify)
-          fix x assume "x \<le> ?x\<^sub>0"
-          have "b \<le> max b 1" by simp
-          also from power_increasing[OF assms(1), of "max b 1"] 
-              have "... \<le> max b 1 ^ ?n" by simp
-          also from `x \<le> ?x\<^sub>0` have "\<bar>max b 1\<bar> \<le> \<bar>x\<bar>" by force
-          from power_mono_even[OF True this]
-              have "max b 1 ^ ?n \<le> x ^ ?n" .
-          finally show "b \<le> x ^ ?n" .
-        qed
-      qed
-  next
-    case False
-      thus "\<forall>b::real. \<exists>x\<^sub>0. \<forall>x\<le>x\<^sub>0. b \<ge> x ^ ?n"
-      proof (clarify)
-        fix b :: real
-        let ?x\<^sub>0 = "min b (-1)"
-        show "\<exists>x\<^sub>0. \<forall>x\<le>x\<^sub>0. x ^ ?n \<le> b"
-        proof (rule exI[of _ ?x\<^sub>0], clarify)
-          fix x assume "x \<le> ?x\<^sub>0"
-          from power_mono_odd[OF False this]
-              have "x ^ ?n \<le> ?x\<^sub>0 ^ ?n" .
-          also from power_increasing[OF assms(1), of "-?x\<^sub>0"] 
-              have "?x\<^sub>0 ^ ?n \<le> ?x\<^sub>0" by (simp add: power_minus_odd[OF False])
-          also have "... \<le> b" by simp
-          finally show "x ^ ?n \<le> b" .
-       qed
-     qed
-  qed
-
-  let ?a = "\<lambda>i. if i = ?n then coeff p ?n else 0"
-  {
-    fix i assume "i \<in> {..?n}"
-    hence "i \<le> ?n" by simp
-    have "((\<lambda>x. coeff p i / x ^ (?n - i)) ---> ?a i) at_bot"
-    proof (cases "i = ?n")
-      case True 
-        thus ?thesis by (intro tendstoI, subst eventually_at_bot_linorder, 
-                         intro exI[of _ 1], clarsimp simp: dist_real_def)
-    next
-      case False
-        hence "?n - i > 0" using `i \<le> ?n` by simp
-        have "filterlim (id :: real \<Rightarrow> real) at_top at_top"
-            by (force simp: filterlim_at_top eventually_at_top_linorder)
-        from tendsto_mult_right_zero[where c = "-1", 
-                 OF tendsto_inverse_0_at_top[OF this]] and divide_real_def[of 1]
-            have "((\<lambda>x. -1 / x :: real) ---> 0) at_top" by simp
-        hence "((\<lambda>x. 1 / x :: real) ---> 0) at_bot"
-            by (simp add: at_top_mirror filterlim_filtermap) 
-        from tendsto_power[OF this, of "?n - i"]
-            have "((\<lambda>x::real. 1 / x ^ (?n - i)) ---> 0) at_bot" 
-                using `?n - i > 0` by (simp add: power_0_left power_one_over)
-        from tendsto_mult_right_zero[OF this, of "coeff p i"]
-            have "((\<lambda>x. coeff p i / x ^ (degree p - i)) ---> 0) at_bot"
-                by (simp add: field_simps)
-        thus ?thesis using False by simp
-    qed
-  }
-  from tendsto_setsum[of "{..?n}" "\<lambda>i x. coeff p i / x ^ (?n - i)", OF this]
-      have "(?f ---> (\<Sum>i\<le>degree p. ?a i)) at_bot" by simp
-  also have "(\<Sum>i\<le>?n. ?a i) = coeff p ?n"
-       by (subst setsum.delta, simp_all)
-  finally have f_tendsto: "(?f ---> coeff p (degree p)) at_bot" .
-
-  have fg_limit: "LIM x at_bot. ?f x * ?g x :> 
+  from poly_limit_aux have "(f ---> coeff p (degree p)) at_bot"
+      using tendsto_mono at_bot_le_at_infinity by (force simp: f_def)
+  moreover from x_pow_n_limit_at_bot assms
+      have "LIM x at_bot. g x :> (if even (degree p) then at_top else at_bot)"
+      by (simp add: g_def split: split_if_asm)
+  ultimately have "LIM x at_bot. f x * g x :> 
                       (if even ?n then at_top else at_bot)"
-      using filterlim_tendsto_pos_mult_at_top[OF f_tendsto assms(2)]
-            filterlim_tendsto_pos_mult_at_bot[OF f_tendsto assms(2)] g_limit
-      by (cases "even ?n", auto)
-  also have "eventually (\<lambda>x. ?f x * ?g x = poly p x) at_bot"
+      by (auto simp: assms intro: filterlim_tendsto_pos_mult_at_top 
+                                  filterlim_tendsto_pos_mult_at_bot)
+  also have "eventually (\<lambda>x. f x * g x = poly p x) at_bot"
+      unfolding f_def g_def
       by (subst eventually_at_bot_linorder, rule exI[of _ "-1"],
           simp add: poly_altdef field_simps setsum_right_distrib power_diff)
   note filterlim_cong[OF refl refl this]

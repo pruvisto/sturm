@@ -38,13 +38,7 @@ using assms by (intro same_signs_imp_same_sign_changes, simp_all)
 lemma sign_changes_sturm_triple:
   assumes "poly p x \<noteq> 0" and "sgn (poly r x) = - sgn (poly p x)"
   shows "sign_changes [p,q,r] x = 1"
-unfolding sign_changes_def
-apply (insert assms)
-apply (cases "poly p x" rule: sgn_real_cases)
-apply (cases "poly q x" rule: sgn_real_cases, simp_all add: sgn_zero_iff) []
-apply (cases "poly q x" rule: sgn_real_cases, simp_all add: sgn_zero_iff) []
-apply (cases "poly q x" rule: sgn_real_cases, simp_all add: sgn_zero_iff) []
-done
+unfolding sign_changes_def by (insert assms, auto simp: sgn_real_def)
 
 
 definition sign_changes_inf where
@@ -492,48 +486,6 @@ proof-
   qed
 qed
     
-
-lemma real_nat_one_half[dest]:
-  "(n::nat) = (m::nat) - 1/2 \<Longrightarrow> False"
-  "(n::nat) = (m::nat) + 1/2 \<Longrightarrow> False"
-proof-
-  assume "(n::nat) = (m::nat) - 1/2" 
-  hence "2*(n - m) = 1" by linarith 
-  thus False by simp
-next
-  assume "(n::nat) = (m::nat) + 1/2" 
-  hence "2*(n - m) = 1" by linarith 
-  thus False by simp
-qed
-
-lemma natfun_eq_in_ivl:
-  assumes "a \<le> b"
-  assumes "\<forall>x::real. a \<le> x \<and> x \<le> b \<longrightarrow> eventually (\<lambda>\<xi>. f \<xi> = (f x::nat)) (at x)"
-  shows "f a = f b"
-proof-
-  have cont: "\<forall>x. a \<le> x \<and> x \<le> b \<longrightarrow> isCont f x"
-  proof (clarify, simp add: isCont_def, rule tendstoI, simp add: dist_real_def)
-    fix \<epsilon> :: real and x :: real assume "\<epsilon> > 0" and  "a \<le> x" "x \<le> b"
-    with assms have A: "eventually (\<lambda>\<xi>. f \<xi> = (f x::nat)) (at x)" by simp
-    show "eventually (\<lambda>\<xi>. \<bar>real (f \<xi>) - real (f x)\<bar> < \<epsilon>) (at x)"
-        by (rule eventually_mono[OF _ A], simp add: `\<epsilon> > 0`)
-  qed
-
-  {
-    def y \<equiv> "f a + 1/2"
-    assume "f a < f b"
-    hence "f a \<le> y" "y \<le> f b" by (simp_all add: y_def)
-    with IVT[OF this `a \<le> b` cont] have False by (auto simp: y_def)
-  }
-  moreover
-  {
-    def y \<equiv> "f a - 1/2"
-    assume "f a > f b"
-    hence "f b \<le> y" "y \<le> f a" by (simp_all add: y_def)
-    with IVT2[OF this `a \<le> b` cont] have False by (auto simp: y_def)
-  }
-  ultimately show "f a = f b" by force
-qed
 
 lemma count_roots_between_aux:
   assumes "a \<le> b"
@@ -1342,28 +1294,10 @@ proof-
     have "poly q x = poly d x * poly (q div d) x"  by (subst q_prod, simp)
     hence s1: "sgn (poly q x) = sgn (poly d x) * sgn (poly (q div d) x)" 
         by (subst q_prod, simp add: sgn_mult)
-
-    have A: "q \<noteq> 0 \<Longrightarrow> degree q = degree (q div d) + degree d"
-        by (subst q_prod, subst degree_mult_eq, subst (asm) q_prod, 
-            simp, subst (asm) q_prod, simp_all)
-
-    have B: "coeff q (degree q) = coeff d (degree d) * 
-                  coeff (q div d) (degree (q div d))"
-    proof (cases "q div d = 0")
-      case True
-        thus ?thesis by (subst q_prod, simp)
-    next
-      case False
-        hence "d \<noteq> 0" using div_by_0 by blast
-        with False have "degree q = degree (q div d) + degree d"
-            by (subst q_prod, simp add: degree_mult_eq)
-        thus ?thesis by (subst q_prod, simp add: coeff_mult_degree_sum)
-    qed
-    have s2: "poly_inf q = s' * poly_inf (q div d)"
-        by (simp add: B s'_def sgn_mult poly_inf_def)
-    have s3: "poly_neg_inf q = s'' * poly_neg_inf (q div d)"
-        by (cases "q = 0", simp, cases "even (degree q)",
-            (simp add: s''_def sgn_mult poly_neg_inf_def B, force simp: A)+)
+    from poly_inf_mult have s2: "poly_inf q = s' * poly_inf (q div d)"
+        unfolding s'_def by (subst q_prod, simp)
+    from poly_inf_mult have s3: "poly_neg_inf q = s'' * poly_neg_inf (q div d)"
+        unfolding s''_def by (subst q_prod, simp)
     note s1 s2 s3
   }
   note signs = this
