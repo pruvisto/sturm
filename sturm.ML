@@ -17,7 +17,8 @@ struct
      @{const_name Real.ord_real_inst.less_real},
      @{const_name Num.nat_of_num}]*)
 
-  val sturm_id_thmss = [@{thms sturm_id_PR_prio2}, @{thms sturm_id_PR_prio1}, @{thms sturm_id_PR_prio0}]
+  val sturm_id_thmss = [@{thms sturm_id_PR_prio2}, @{thms sturm_id_PR_prio1}, 
+          @{thms sturm_id_PR_prio0}]
   val sturm_PR_tag_intro_thmss = [@{thms PR_TAG_intro_prio2}, @{thms PR_TAG_intro_prio1}, @{thms PR_TAG_intro_prio0}]
 
   fun extract_PR_tags (t as (Const ("Sturm_Method.PR_TAG", _) $ _)) acc = t :: acc
@@ -41,7 +42,8 @@ struct
                 end;
           in  EVERY (map tac trms) thm
           end;
-    in  (FIRST (map subst_tac sturm_id_thmss))
+    in  FIRST (map subst_tac sturm_id_thmss)
+        THEN REPEAT (subst_tac @{thms HOL.nnf_simps not_less not_le})
         THEN process_PR_tag_tac
     end;
 
@@ -158,8 +160,24 @@ struct
         ) ORELSE (if keep_goal then all_tac else no_tac)) thm
     end;
 
+    fun convert_meta_spec_tac ctxt i thm =
+      let val prem = term_of (cprem_of thm i)
+          val frees = Term.add_frees prem []
+      in case frees of
+           [_] => let val prem' = Logic.close_form prem
+                    val goal = Logic.mk_implies (prem', prem)
+                    val rule = Goal.prove ctxt [] [] goal (fn _ => 
+                                   dtac @{thm sturm_meta_spec} i THEN atac i)
+                in  rtac rule i thm
+                end
+         | _ => Seq.empty
+      end
+
     fun sturm_tac ctxt keep_goal i =
-        sturm_preprocess_tac ctxt i
+        prune_params_tac
+        THEN TRY (convert_meta_spec_tac ctxt i)
+        THEN TRY (Object_Logic.full_atomize_tac i)
+        THEN sturm_preprocess_tac ctxt i
         THEN sturm_main_tac ctxt keep_goal i
 
 end;

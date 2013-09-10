@@ -342,7 +342,7 @@ definition "PR_TAG x \<equiv> x"
 
 lemma sturm_id_PR_prio0:
   "{x::real. P x} = {x::real. (PR_TAG P) x}"
-  "(\<forall>x::real. P x) = (\<forall>x::real. (PR_TAG P) x)"
+  "(\<forall>x::real. P x) = (\<forall>x::real. \<not>(PR_TAG (\<lambda>x. \<not>P x)) x)"
   by (simp_all add: PR_TAG_def)
 
 lemma sturm_id_PR_prio1:
@@ -350,29 +350,29 @@ lemma sturm_id_PR_prio1:
   "{x::real. x \<le> a \<and> P x} = {x::real. x \<le> a \<and> (PR_TAG P) x}"
   "{x::real. x \<ge> b \<and> P x} = {x::real. x \<ge> b \<and> (PR_TAG P) x}"
   "{x::real. x > b \<and> P x} = {x::real. x > b \<and> (PR_TAG P) x}"
-  "(\<forall>x::real < a. P x) = (\<forall>x::real < a. (PR_TAG P) x)"
-  "(\<forall>x::real > a. P x) = (\<forall>x::real > a. (PR_TAG P) x)"
-  "(\<forall>x::real \<le> a. P x) = (\<forall>x::real \<le> a. (PR_TAG P) x)"
-  "(\<forall>x::real \<ge> a. P x) = (\<forall>x::real \<ge> a. (PR_TAG P) x)"
+  "(\<forall>x::real < a. P x) = (\<forall>x::real < a. \<not>(PR_TAG (\<lambda>x. \<not>P x)) x)"
+  "(\<forall>x::real > a. P x) = (\<forall>x::real > a. \<not>(PR_TAG (\<lambda>x. \<not>P x)) x)"
+  "(\<forall>x::real \<le> a. P x) = (\<forall>x::real \<le> a. \<not>(PR_TAG (\<lambda>x. \<not>P x)) x)"
+  "(\<forall>x::real \<ge> a. P x) = (\<forall>x::real \<ge> a. \<not>(PR_TAG (\<lambda>x. \<not>P x)) x)"
   by (simp_all add: PR_TAG_def)
 
 lemma sturm_id_PR_prio2:
   "{x::real. x > a \<and> x \<le> b \<and> P x} = 
-       {x::real. x > a \<and> x \<le> b \<and> (PR_TAG P) x}"
+       {x::real. x > a \<and> x \<le> b \<and> PR_TAG P x}"
   "{x::real. x \<ge> a \<and> x \<le> b \<and> P x} = 
-       {x::real. x \<ge> a \<and> x \<le> b \<and> (PR_TAG P) x}"
+       {x::real. x \<ge> a \<and> x \<le> b \<and> PR_TAG P x}"
   "{x::real. x \<ge> a \<and> x < b \<and> P x} = 
-       {x::real. x \<ge> a \<and> x < b \<and> (PR_TAG P) x}"
+       {x::real. x \<ge> a \<and> x < b \<and> PR_TAG P x}"
   "{x::real. x > a \<and> x < b \<and> P x} = 
-       {x::real. x > a \<and> x < b \<and> (PR_TAG P) x}"
+       {x::real. x > a \<and> x < b \<and> PR_TAG P x}"
   "(\<forall>x::real. a < x \<and> x \<le> b \<longrightarrow> P x) = 
-       (\<forall>x::real. a < x \<and> x \<le> b \<longrightarrow> (PR_TAG P) x)"
+       (\<forall>x::real. a < x \<and> x \<le> b \<longrightarrow> \<not>(PR_TAG (\<lambda>x. \<not>P x)) x)"
   "(\<forall>x::real. a \<le> x \<and> x \<le> b \<longrightarrow> P x) = 
-       (\<forall>x::real. a \<le> x \<and> x \<le> b \<longrightarrow> (PR_TAG P) x)"
+       (\<forall>x::real. a \<le> x \<and> x \<le> b \<longrightarrow> \<not>(PR_TAG (\<lambda>x. \<not>P x)) x)"
   "(\<forall>x::real. a \<le> x \<and> x < b \<longrightarrow> P x) = 
-       (\<forall>x::real. a \<le> x \<and> x < b \<longrightarrow> (PR_TAG P) x)"
+       (\<forall>x::real. a \<le> x \<and> x < b \<longrightarrow> \<not>(PR_TAG (\<lambda>x. \<not>P x)) x)"
   "(\<forall>x::real. a < x \<and> x < b \<longrightarrow> P x) = 
-       (\<forall>x::real. a < x \<and> x < b \<longrightarrow> (PR_TAG P) x)"
+       (\<forall>x::real. a < x \<and> x < b \<longrightarrow> \<not>(PR_TAG (\<lambda>x. \<not>P x)) x)"
   by (simp_all add: PR_TAG_def)
 
 
@@ -384,12 +384,6 @@ lemma PR_TAG_intro_prio0:
        \<Longrightarrow> PR_TAG (\<lambda>x. P x \<and> Q x) = (\<lambda>x. poly (gcd p q) x = 0)" and
  " \<lbrakk>PR_TAG P = (\<lambda>x. poly p x = 0); PR_TAG Q = (\<lambda>x. poly q x = 0)\<rbrakk>
        \<Longrightarrow> PR_TAG (\<lambda>x. P x \<or> Q x) = (\<lambda>x. poly (p*q) x = 0)" and
-  "\<lbrakk>PR_TAG (\<lambda>x. \<not>P x) = (\<lambda>x. poly p x = 0); 
-    PR_TAG (\<lambda>x. \<not>Q x) = (\<lambda>x. poly q x = 0)\<rbrakk>
-       \<Longrightarrow> PR_TAG (\<lambda>x. \<not>(P x \<and> Q x)) = (\<lambda>x. poly (p*q) x = 0)" and
-  "\<lbrakk>PR_TAG (\<lambda>x. \<not>P x) = (\<lambda>x. poly p x = 0); 
-    PR_TAG (\<lambda>x. \<not>Q x) = (\<lambda>x. poly q x = 0)\<rbrakk>
-       \<Longrightarrow> PR_TAG (\<lambda>x. \<not>(P x \<or> Q x)) = (\<lambda>x. poly (gcd p q) x = 0)" and
 
   "\<lbrakk>PR_TAG f = (\<lambda>x. poly p x); PR_TAG g = (\<lambda>x. poly q x)\<rbrakk>
        \<Longrightarrow> PR_TAG (\<lambda>x. f x = g x) = (\<lambda>x. poly (p-q) x = 0)"
@@ -399,10 +393,6 @@ lemma PR_TAG_intro_prio0:
        \<Longrightarrow> PR_TAG (\<lambda>x. f x < g x) = (\<lambda>x. poly (p-q) x < 0)"
   "\<lbrakk>PR_TAG f = (\<lambda>x. poly p x); PR_TAG g = (\<lambda>x. poly q x)\<rbrakk>
        \<Longrightarrow> PR_TAG (\<lambda>x. f x \<le> g x) = (\<lambda>x. poly (p-q) x \<le> 0)"
-  "\<lbrakk>PR_TAG f = (\<lambda>x. poly p x); PR_TAG g = (\<lambda>x. poly q x)\<rbrakk>
-       \<Longrightarrow> PR_TAG (\<lambda>x. \<not>(f x < g x)) = (\<lambda>x. poly (q-p) x \<le> 0)"
-  "\<lbrakk>PR_TAG f = (\<lambda>x. poly p x); PR_TAG g = (\<lambda>x. poly q x)\<rbrakk>
-       \<Longrightarrow> PR_TAG (\<lambda>x. \<not>(f x \<le> g x)) = (\<lambda>x. poly (q-p) x < 0)"
 
   "PR_TAG f = (\<lambda>x. poly p x) \<Longrightarrow> PR_TAG (\<lambda>x. -f x) = (\<lambda>x. poly (-p) x)"
   "\<lbrakk>PR_TAG f = (\<lambda>x. poly p x); PR_TAG g = (\<lambda>x. poly q x)\<rbrakk>
@@ -415,11 +405,7 @@ lemma PR_TAG_intro_prio0:
   "PR_TAG (\<lambda>x. poly p x :: real) = (\<lambda>x. poly p x)"
   "PR_TAG (\<lambda>x. x::real) = (\<lambda>x. poly [:0,1:] x)"
   "PR_TAG (\<lambda>x. a::real) = (\<lambda>x. poly [:a:] x)"
-apply (simp_all add: PR_TAG_def poly_eq_0_iff_dvd)[2]
-apply (simp add: PR_TAG_def, metis)
-apply (simp add: PR_TAG_def poly_eq_0_iff_dvd, metis) 
-apply (simp_all add: PR_TAG_def not_le not_less)
-done
+  by (simp_all add: PR_TAG_def poly_eq_0_iff_dvd)
 
 
 lemma PR_TAG_intro_prio1:
@@ -464,24 +450,20 @@ lemma PR_TAG_intro_prio2:
 using assms by (intro ext, simp_all add: PR_TAG_def field_simps 
                     poly_monom power_add divide_real_def)
 
+lemma sturm_meta_spec: "(\<And>x::real. P x) \<Longrightarrow> P x" by simp
+
 ML_file "sturm.ML"
 
 method_setup sturm = {*
   Scan.succeed (fn ctxt => SIMPLE_METHOD' (Sturm.sturm_tac ctxt true))
 *}
 
-(*
-schematic_lemma "card {x :: real. x \<ge> 0 \<and> x * x = 0} = ?n" by sturm
+lemma
+  fixes x :: real
+  shows "x^2 + 1 \<noteq> 0" 
+by sturm
 
-schematic_lemma "card {x::real. x \<ge> 0 \<and> poly [:0, 0, 1:] x = 0} = ?n" by sturm
-
-lemma "card {x::real. poly [:1,0,1:] x = 0} = 0" by sturm
-
-lemma "\<forall>x::real. poly [:1,0,1:] x \<noteq> 0" by sturm
-
-lemma  "\<forall>x::real. 1 < x \<and> x < 2 \<longrightarrow> poly [:0, -17/2097152, -49/16777216, 
-                  1/6, 1/24, 1/120:] x \<noteq> 0" by sturm
-*)
+lemma "\<forall>x::real. x*x \<noteq> -1" by sturm
 
 schematic_lemma A:
 "card {x::real. -0.010831 < x \<and> x < 0.010831 \<and> 
@@ -489,18 +471,22 @@ schematic_lemma A:
   = ?n"
   by sturm
 
-lemma "card {x::real. x^3 + x = 2*x^2 \<and> x^3 - 6*x^2 + 11*x = 6} = 1"
-  by sturm
+lemma "card {x::real. x^3 + x = 2*x^2 \<and> x^3 - 6*x^2 + 11*x = 6} = 1" 
+by sturm
 
-schematic_lemma 
-    "card {x::real. x^3 + x = 2*x^2 \<or> x^3 - 6*x^2 + 11*x = 6} = ?n"
-  by sturm
 
-lemma "\<forall>x::real. x*x \<noteq> -1" by sturm
+
+schematic_lemma "card {x::real. x^3 + x = 2*x^2 \<or> x^3 - 6*x^2 + 11*x = 6} = ?n" by sturm
 
 schematic_lemma
   "card {x::real. -0.010831 < x \<and> x < 0.010831 \<and> 
      poly [:0, -17/2097152, -49/16777216, 1/6, 1/24, 1/120:] x = 0} = 3"
   by sturm
+
+
+
+lemma "\<forall>x::real. x*x \<noteq> 0 \<or> x*x - 1 \<noteq> 2*x" by sturm
+
+lemma "(x::real)*x+1 \<noteq> 0 \<and> (x^2+1)*(x^2+2) \<noteq> 0" by sturm
 
 end
