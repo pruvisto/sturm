@@ -9,8 +9,9 @@ lemma poly_card_roots_less_leq:
   by (simp add: count_roots_between_correct)
 
 lemma poly_card_roots_leq_leq:
-  "card {x. a \<le> x \<and> x \<le> b \<and> poly p x = 0} = count_roots_between p a b + 
-      (if (a \<le> b \<and> poly p a = 0 \<and> p \<noteq> 0) \<or> (a = b \<and> p = 0) then 1 else 0)"
+  "card {x. a \<le> x \<and> x \<le> b \<and> poly p x = 0} = 
+       (let p = p in count_roots_between p a b + 
+      (if (a \<le> b \<and> poly p a = 0 \<and> p \<noteq> 0) \<or> (a = b \<and> p = 0) then 1 else 0))"
 proof (cases "(a \<le> b \<and> poly p a = 0 \<and> p \<noteq> 0) \<or> (a = b \<and> p = 0)")
   case False
     note False' = this
@@ -52,8 +53,9 @@ next
 qed
 
 lemma poly_card_roots_less_less:
-  "card {x. a < x \<and> x < b \<and> poly p x = 0} = count_roots_between p a b -
-              (if poly p b = 0 \<and> a < b \<and> p \<noteq> 0 then 1 else 0)"
+  "card {x. a < x \<and> x < b \<and> poly p x = 0} = 
+      (let p = p in count_roots_between p a b -
+              (if poly p b = 0 \<and> a < b \<and> p \<noteq> 0 then 1 else 0))"
 proof (cases "poly p b = 0 \<and> a < b \<and> p \<noteq> 0")
   case False
     note False' = this
@@ -85,9 +87,9 @@ qed
 
 lemma poly_card_roots_leq_less:
   "card {x::real. a \<le> x \<and> x < b \<and> poly p x = 0} =
-      count_roots_between p a b +
+      (let p = p in count_roots_between p a b +
       (if p \<noteq> 0 \<and> a < b \<and> poly p a = 0 then 1 else 0) -
-      (if p \<noteq> 0 \<and> a < b \<and> poly p b = 0 then 1 else 0)"
+      (if p \<noteq> 0 \<and> a < b \<and> poly p b = 0 then 1 else 0))"
 proof (cases "p = 0 \<or> a \<ge> b")
   case True
     note True' = this
@@ -129,12 +131,13 @@ lemma poly_card_roots:
   using assms count_roots_correct by simp
 
 lemma poly_no_roots:
-  "(\<forall>x. poly p x \<noteq> 0) \<longleftrightarrow> p \<noteq> 0 \<and> count_roots p = 0"
+  "(\<forall>x. poly p x \<noteq> 0) \<longleftrightarrow> (let p = p in p \<noteq> 0 \<and> count_roots p = 0)"
     by (auto simp: count_roots_correct dest: poly_roots_finite)
 
 lemma poly_pos:
-  "(\<forall>x. poly p x > 0) \<longleftrightarrow> p \<noteq> 0 \<and> poly_inf p = 1 \<and> count_roots p = 0"
-  by (subst poly_pos, subst poly_no_roots, blast)
+  "(\<forall>x. poly p x > 0) \<longleftrightarrow> (let p = p in 
+        p \<noteq> 0 \<and> poly_inf p = 1 \<and> count_roots p = 0)"
+  by (simp only: Let_def poly_pos poly_no_roots, blast)
 
 
 lemma poly_card_roots_greater:
@@ -146,8 +149,8 @@ lemma poly_card_roots_leq:
   using assms  count_roots_below_correct by simp
 
 lemma poly_card_roots_geq:
-  "card {x::real. x \<ge> a \<and> poly p x = 0} = 
-      count_roots_above p a + (if poly p a = 0 \<and> p \<noteq> 0 then 1 else 0)"
+  "card {x::real. x \<ge> a \<and> poly p x = 0} = (let p = p in
+      count_roots_above p a + (if poly p a = 0 \<and> p \<noteq> 0 then 1 else 0))"
 proof (cases "poly p a = 0 \<and> p \<noteq> 0")
   case False
     hence "card {x. x \<ge> a \<and> poly p x = 0} = card {x. x > a \<and> poly p x = 0}"
@@ -181,8 +184,8 @@ next
 qed
 
 lemma poly_card_roots_less:
-  "card {x::real. x < a \<and> poly p x = 0} = 
-       count_roots_below p a - (if poly p a = 0 \<and> p \<noteq> 0 then 1 else 0)"
+  "card {x::real. x < a \<and> poly p x = 0} = (let p = p in
+       count_roots_below p a - (if poly p a = 0 \<and> p \<noteq> 0 then 1 else 0))"
 proof (cases "poly p a = 0 \<and> p \<noteq> 0")
   case False
     hence "card {x. x < a \<and> poly p x = 0} = card {x. x \<le> a \<and> poly p x = 0}"
@@ -218,22 +221,24 @@ qed
 
 
 lemma poly_no_roots_less_leq:
-  "(\<forall>x. a < x \<and> x \<le> b \<longrightarrow> poly p x \<noteq> 0) \<longleftrightarrow> 
-   (a \<ge> b \<or> (p \<noteq> 0 \<and> count_roots_between p a b = 0))"
+  "(\<forall>x. a < x \<and> x \<le> b \<longrightarrow> poly p x \<noteq> 0) \<longleftrightarrow> (let p = p in
+   (a \<ge> b \<or> (p \<noteq> 0 \<and> count_roots_between p a b = 0)))"
   by (auto simp: count_roots_between_correct card_eq_0_iff not_le 
            intro: poly_roots_finite)
 
 lemma poly_pos_between_less_leq:
-  "(\<forall>x. a < x \<and> x \<le> b \<longrightarrow> poly p x > 0) \<longleftrightarrow> 
-   (a \<ge> b \<or> (p \<noteq> 0 \<and> poly p b > 0 \<and> count_roots_between p a b = 0))"
-  by (subst poly_pos_between_less_leq, subst poly_no_roots_less_leq, blast)
+  "(\<forall>x. a < x \<and> x \<le> b \<longrightarrow> poly p x > 0) \<longleftrightarrow> (let p = p in
+   (a \<ge> b \<or> (p \<noteq> 0 \<and> poly p b > 0 \<and> count_roots_between p a b = 0)))"
+  by (simp only: poly_pos_between_less_leq Let_def 
+                 poly_no_roots_less_leq, blast)
 
 
 lemma poly_no_roots_leq_leq:
-  "(\<forall>x. a \<le> x \<and> x \<le> b \<longrightarrow> poly p x \<noteq> 0) \<longleftrightarrow>
-   (a > b \<or> (p \<noteq> 0 \<and> poly p a \<noteq> 0 \<and> count_roots_between p a b = 0))"
+  "(\<forall>x. a \<le> x \<and> x \<le> b \<longrightarrow> poly p x \<noteq> 0) \<longleftrightarrow> (let p = p in
+   (a > b \<or> (p \<noteq> 0 \<and> poly p a \<noteq> 0 \<and> count_roots_between p a b = 0)))"
 apply (intro iffI)
 apply (force simp add: count_roots_between_correct card_eq_0_iff)
+apply (unfold Let_def)
 apply (elim conjE disjE, simp, intro allI)
 apply (rename_tac x, case_tac "x = a")
 apply (auto simp add: count_roots_between_correct card_eq_0_iff
@@ -241,16 +246,17 @@ apply (auto simp add: count_roots_between_correct card_eq_0_iff
 done
 
 lemma poly_pos_between_leq_leq:
-  "(\<forall>x. a \<le> x \<and> x \<le> b \<longrightarrow> poly p x > 0) \<longleftrightarrow> 
+  "(\<forall>x. a \<le> x \<and> x \<le> b \<longrightarrow> poly p x > 0) \<longleftrightarrow> (let p = p in
    (a > b \<or> (p \<noteq> 0 \<and> poly p a > 0 \<and> 
-                count_roots_between p a b = 0))"
-  by (subst poly_pos_between_leq_leq, subst poly_no_roots_leq_leq, force)
+                count_roots_between p a b = 0)))"
+by (simp only: poly_pos_between_leq_leq Let_def poly_no_roots_leq_leq, force)
 
 
 
 lemma poly_no_roots_less_less:
-  "(\<forall>x. a < x \<and> x < b \<longrightarrow> poly p x \<noteq> 0) \<longleftrightarrow>
-   (a \<ge> b \<or> p \<noteq> 0 \<and> count_roots_between p a b = (if poly p b = 0 then 1 else 0))"
+  "(\<forall>x. a < x \<and> x < b \<longrightarrow> poly p x \<noteq> 0) \<longleftrightarrow> (let p = p in
+   (a \<ge> b \<or> p \<noteq> 0 \<and> count_roots_between p a b = 
+       (if poly p b = 0 then 1 else 0)))"
 proof
   case goal1
     note A = this
@@ -279,17 +285,16 @@ next
 qed
 
 lemma poly_pos_between_less_less:
-  "(\<forall>x. a < x \<and> x < b \<longrightarrow> poly p x > 0) \<longleftrightarrow> 
+  "(\<forall>x. a < x \<and> x < b \<longrightarrow> poly p x > 0) \<longleftrightarrow> (let p = p in
    (a \<ge> b \<or> (p \<noteq> 0 \<and> poly p ((a+b)/2) > 0 \<and> 
-       count_roots_between p a b = (if poly p b = 0 then 1 else 0)))"
-  by (subst poly_pos_between_less_less, subst poly_no_roots_less_less, blast)
-
-
+       count_roots_between p a b = (if poly p b = 0 then 1 else 0))))"
+  by (simp only: poly_pos_between_less_less Let_def 
+                 poly_no_roots_less_less, blast)
 
 lemma poly_no_roots_leq_less:
-  "(\<forall>x. a \<le> x \<and> x < b \<longrightarrow> poly p x \<noteq> 0) \<longleftrightarrow> 
+  "(\<forall>x. a \<le> x \<and> x < b \<longrightarrow> poly p x \<noteq> 0) \<longleftrightarrow> (let p = p in
    (a \<ge> b \<or> p \<noteq> 0 \<and> poly p a \<noteq> 0 \<and> count_roots_between p a b = 
-       (if a < b \<and> poly p b = 0 then 1 else 0))"
+       (if a < b \<and> poly p b = 0 then 1 else 0)))"
 proof
   case goal1
     hence "\<forall>x. a < x \<and> x < b \<longrightarrow> poly p x \<noteq> 0" by simp
@@ -298,19 +303,22 @@ next
   case goal2
     hence "(b \<le> a \<or> p \<noteq> 0 \<and> count_roots_between p a b = 
                (if poly p b = 0 then 1 else 0))" by auto
-    thus ?case using goal2 by (subst (asm) poly_no_roots_less_less[symmetric], 
+    thus ?case using goal2 unfolding Let_def
+        by (subst (asm) poly_no_roots_less_less[symmetric, unfolded Let_def], 
         auto split: split_if_asm simp: less_eq_real_def) 
 qed
 
 lemma poly_pos_between_leq_less:
-  "(\<forall>x. a \<le> x \<and> x < b \<longrightarrow> poly p x > 0) \<longleftrightarrow> 
+  "(\<forall>x. a \<le> x \<and> x < b \<longrightarrow> poly p x > 0) \<longleftrightarrow> (let p = p in
    (a \<ge> b \<or> (p \<noteq> 0 \<and> poly p a > 0 \<and> count_roots_between p a b = 
-        (if a < b \<and> poly p b = 0 then 1 else 0)))"
- by (subst poly_pos_between_leq_less, subst poly_no_roots_leq_less, force)
+        (if a < b \<and> poly p b = 0 then 1 else 0))))"
+ by (simp only: poly_pos_between_leq_less Let_def 
+                poly_no_roots_leq_less, force)
 
 
 lemma poly_no_roots_greater:
-  "(\<forall>x. x > a \<longrightarrow> poly p x \<noteq> 0) \<longleftrightarrow> (p \<noteq> 0 \<and> count_roots_above p a = 0)"
+  "(\<forall>x. x > a \<longrightarrow> poly p x \<noteq> 0) \<longleftrightarrow> (let p = p in 
+       (p \<noteq> 0 \<and> count_roots_above p a = 0))"
 proof-
   have "\<forall>x. \<not> a < x \<Longrightarrow> False" by (metis gt_ex)
   thus ?thesis by (auto simp: count_roots_above_correct card_eq_0_iff
@@ -318,25 +326,27 @@ proof-
 qed
 
 lemma poly_pos_greater:
-  "(\<forall>x. x > a \<longrightarrow> poly p x > 0) \<longleftrightarrow> 
-   p \<noteq> 0 \<and> poly_inf p = 1 \<and> count_roots_above p a = 0"
-  by (subst poly_pos_greater, subst poly_no_roots_greater, blast)
+  "(\<forall>x. x > a \<longrightarrow> poly p x > 0) \<longleftrightarrow> (let p = p in
+       p \<noteq> 0 \<and> poly_inf p = 1 \<and> count_roots_above p a = 0)"
+  unfolding Let_def
+  by (subst poly_pos_greater, subst poly_no_roots_greater, force)
 
 lemma poly_no_roots_leq:
-  "(\<forall>x. x \<le> a \<longrightarrow> poly p x \<noteq> 0) \<longleftrightarrow> (p \<noteq> 0 \<and> count_roots_below p a = 0)"
-    by (auto simp: count_roots_below_correct card_eq_0_iff
-             intro: poly_roots_finite )
+  "(\<forall>x. x \<le> a \<longrightarrow> poly p x \<noteq> 0) \<longleftrightarrow> 
+       (let p = p in (p \<noteq> 0 \<and> count_roots_below p a = 0))"
+    by (auto simp: Let_def count_roots_below_correct card_eq_0_iff
+             intro: poly_roots_finite)
 
 lemma poly_pos_leq:
   "(\<forall>x. x \<le> a \<longrightarrow> poly p x > 0) \<longleftrightarrow> 
-   p \<noteq> 0 \<and> poly_neg_inf p = 1 \<and> count_roots_below p a = 0"
-  by (subst poly_pos_leq, subst poly_no_roots_leq, blast)
+   (let p = p in p \<noteq> 0 \<and> poly_neg_inf p = 1 \<and> count_roots_below p a = 0)"
+  by (simp only: poly_pos_leq Let_def poly_no_roots_leq, blast)
 
 
 
 lemma poly_no_roots_geq:
   "(\<forall>x. x \<ge> a \<longrightarrow> poly p x \<noteq> 0) \<longleftrightarrow>
-       (p \<noteq> 0 \<and> poly p a \<noteq> 0 \<and> count_roots_above p a = 0)"
+       (let p = p in (p \<noteq> 0 \<and> poly p a \<noteq> 0 \<and> count_roots_above p a = 0))"
 proof
   case goal1
   hence "\<forall>x>a. poly p x \<noteq> 0" by simp
@@ -345,18 +355,18 @@ next
   case goal2
   hence "(p \<noteq> 0 \<and> count_roots_above p a = 0)" by simp
   thus ?case using goal2 
-      by (subst (asm) poly_no_roots_greater[symmetric], 
+      by (subst (asm) poly_no_roots_greater[symmetric, unfolded Let_def], 
           auto simp: less_eq_real_def)
 qed
 
 lemma poly_pos_geq:
-  "(\<forall>x. x \<ge> a \<longrightarrow> poly p x > 0) \<longleftrightarrow> 
-   p \<noteq> 0 \<and> poly_inf p = 1 \<and> poly p a \<noteq> 0 \<and> count_roots_above p a = 0"
-  by (subst poly_pos_geq, subst poly_no_roots_geq, blast)
+  "(\<forall>x. x \<ge> a \<longrightarrow> poly p x > 0) \<longleftrightarrow> (let p = p in
+   p \<noteq> 0 \<and> poly_inf p = 1 \<and> poly p a \<noteq> 0 \<and> count_roots_above p a = 0)"
+  by (simp only: poly_pos_geq Let_def poly_no_roots_geq, blast)
 
 lemma poly_no_roots_less:
-  "(\<forall>x. x < a \<longrightarrow> poly p x \<noteq> 0) \<longleftrightarrow>
-       (p \<noteq> 0 \<and> count_roots_below p a = (if poly p a = 0 then 1 else 0))"
+  "(\<forall>x. x < a \<longrightarrow> poly p x \<noteq> 0) \<longleftrightarrow> (let p = p in
+       (p \<noteq> 0 \<and> count_roots_below p a = (if poly p a = 0 then 1 else 0)))"
 proof
   case goal1
   hence "{x. x \<le> a \<and> poly p x = 0} = (if poly p a = 0 then {a} else {})"
@@ -377,10 +387,10 @@ next
 qed
 
 lemma poly_pos_less:
-  "(\<forall>x. x < a \<longrightarrow> poly p x > 0) \<longleftrightarrow> 
+  "(\<forall>x. x < a \<longrightarrow> poly p x > 0) \<longleftrightarrow> (let p = p in
    p \<noteq> 0 \<and> poly_neg_inf p = 1 \<and> count_roots_below p a = 
-       (if poly p a = 0 then 1 else 0)"
-  by (subst poly_pos_less, subst poly_no_roots_less, blast)
+       (if poly p a = 0 then 1 else 0))"
+  by (simp only: poly_pos_less Let_def poly_no_roots_less, blast)
 
 
 lemmas sturm_card_substs = poly_card_roots poly_card_roots_less_leq 
@@ -453,6 +463,7 @@ lemma sturm_id_PR_prio2:
 lemma PR_TAG_intro_prio0:
   fixes P :: "real \<Rightarrow> bool" and f :: "real \<Rightarrow> real"
   shows
+  "PR_TAG P = P' \<Longrightarrow> PR_TAG (\<lambda>x. \<not>(\<not>P x)) = P'"
   "\<lbrakk>PR_TAG P = (\<lambda>x. poly p x = 0); PR_TAG Q = (\<lambda>x. poly q x = 0)\<rbrakk>
        \<Longrightarrow> PR_TAG (\<lambda>x. P x \<and> Q x) = (\<lambda>x. poly (gcd p q) x = 0)" and
  " \<lbrakk>PR_TAG P = (\<lambda>x. poly p x = 0); PR_TAG Q = (\<lambda>x. poly q x = 0)\<rbrakk>
@@ -544,12 +555,15 @@ method_setup sturm = {*
   Scan.succeed (fn ctxt => SIMPLE_METHOD' (Sturm.sturm_tac ctxt true))
 *}
 
-lemma "(x::real) > 1 \<Longrightarrow> x^3 > 1" by sturm
+lemma
+ "\<forall>x::real. x^2 + 1 \<noteq> 0"
+by sturm
 
 lemma
   fixes x :: real
-  shows "x^2 + 1 \<noteq> 0" 
-by sturm
+  shows "x^2 + 1 \<noteq> 0" by sturm
+
+lemma "(x::real) > 1 \<Longrightarrow> x^3 > 1" by sturm
 
 lemma "\<forall>x::real. x*x \<noteq> -1" by sturm
 
@@ -566,12 +580,11 @@ by sturm
 
 schematic_lemma "card {x::real. x^3 + x = 2*x^2 \<or> x^3 - 6*x^2 + 11*x = 6} = ?n" by sturm
 
+
 schematic_lemma
   "card {x::real. -0.010831 < x \<and> x < 0.010831 \<and> 
      poly [:0, -17/2097152, -49/16777216, 1/6, 1/24, 1/120:] x = 0} = 3"
   by sturm
-
-
 
 lemma "\<forall>x::real. x*x \<noteq> 0 \<or> x*x - 1 \<noteq> 2*x" by sturm
 

@@ -18,6 +18,7 @@
 \usepackage{pgf}
 \usepackage{nicefrac}
 \usepackage{enumerate}
+\usepackage{xspace}
 
 \usepackage{tgpagella}
 
@@ -47,11 +48,11 @@
 \newcommand{\vdiv}{\mathrm{div}}
 \newcommand{\shouldbe}{\stackrel{!}{=}}
 
-\newcommand{\isabellehol}{\mbox{Isabelle}\slash HOL}
+\newcommand{\isabellehol}{\mbox{Isabelle}\slash HOL\xspace}
 
 \geometry{a4paper,left=30mm,right=30mm, top=25mm, bottom=30mm} 
 
-\title{A Formalisation of Sturm Chains in \isabellehol}
+\title{A Formalisation of Sturm's theorem in \isabellehol}
 \author{Manuel Eberl}
 
 \begin{document}
@@ -99,12 +100,12 @@ the chain.
 
 \section{Goal}
 
-The goal is to formulise Sturm's theorem and its aforementioned generalisations 
+The goal is to formalise Sturm's theorem and its aforementioned generalisations 
 in \emph{\isabellehol}. The result should be an executable function for 
 determining the number of roots of a polynomial. Such a function can be 
 exported to a programming language such as ML or Haskell using Isabelle's 
 code generator, or it can be used to implement a decision procedure fo the 
-number of roots of a polynomial directly in Isabelle.
+number of roots of a polynomial directly in Isabelle.\footnote{This can only work for rational coefficients and interval bounds, of course.}
 
 One example for which such a decision procedure would be useful is the 
 formalisation of algorithms for numerical approximation; for instance, there 
@@ -116,8 +117,8 @@ is written as:
 
 \vspace*{-5mm}
 \begin{align*}
-&\textbf{lemma} "\mathrm{card}\ \{x::\mathrm{real}. -0.010831 < x\ \wedge\ x < 0.010831\ \wedge\\
-&\hskip20mm \mathrm{poly}\ [:0, -17/2097152, -49/16777216, 1/6, 1/24, 1/120:]\ \ x\ =\ 0\} = 3"
+&\textbf{lemma}\ "\mathrm{card}\ \{x::\mathrm{real}. -0.010831 < x\ \wedge\ x < 0.010831\ \wedge\\
+&\hskip15mm 1/120*x^4 + 1/24*x^4 + 1/6*x^3 - 49/16777216*x^2 - 17/2097152*x\ =\ 0\} = 3"
 \end{align*}
 
 This fact is readily checkable with any computer algebra system, but was, so far, 
@@ -128,6 +129,7 @@ with our proof method derived from our formalisation of Sturm chains.
 \section{Work outline}
 We estimate that the work to be done is the following:
 \begin{itemize}
+\item Study the mathematical literature on Sturm chains
 \item Define, with enough generality to allow for later generalisations and optimisations, what 
       properties a general Sturm chain must fulfil
 \item Prove that a chain fulfilling these requirements can indeed be used to count roots
