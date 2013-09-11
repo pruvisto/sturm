@@ -132,6 +132,10 @@ lemma poly_no_roots:
   "(\<forall>x. poly p x \<noteq> 0) \<longleftrightarrow> p \<noteq> 0 \<and> count_roots p = 0"
     by (auto simp: count_roots_correct dest: poly_roots_finite)
 
+lemma poly_pos:
+  "(\<forall>x. poly p x > 0) \<longleftrightarrow> p \<noteq> 0 \<and> poly_inf p = 1 \<and> count_roots p = 0"
+  by (subst poly_pos, subst poly_no_roots, blast)
+
 
 lemma poly_card_roots_greater:
   "card {x::real. x > a \<and> poly p x = 0} = count_roots_above p a"
@@ -219,6 +223,12 @@ lemma poly_no_roots_less_leq:
   by (auto simp: count_roots_between_correct card_eq_0_iff not_le 
            intro: poly_roots_finite)
 
+lemma poly_pos_between_less_leq:
+  "(\<forall>x. a < x \<and> x \<le> b \<longrightarrow> poly p x > 0) \<longleftrightarrow> 
+   (a \<ge> b \<or> (p \<noteq> 0 \<and> poly p b > 0 \<and> count_roots_between p a b = 0))"
+  by (subst poly_pos_between_less_leq, subst poly_no_roots_less_leq, blast)
+
+
 lemma poly_no_roots_leq_leq:
   "(\<forall>x. a \<le> x \<and> x \<le> b \<longrightarrow> poly p x \<noteq> 0) \<longleftrightarrow>
    (a > b \<or> (p \<noteq> 0 \<and> poly p a \<noteq> 0 \<and> count_roots_between p a b = 0))"
@@ -229,6 +239,14 @@ apply (rename_tac x, case_tac "x = a")
 apply (auto simp add: count_roots_between_correct card_eq_0_iff
             intro: poly_roots_finite)
 done
+
+lemma poly_pos_between_leq_leq:
+  "(\<forall>x. a \<le> x \<and> x \<le> b \<longrightarrow> poly p x > 0) \<longleftrightarrow> 
+   (a > b \<or> (p \<noteq> 0 \<and> poly p a > 0 \<and> 
+                count_roots_between p a b = 0))"
+  by (subst poly_pos_between_leq_leq, subst poly_no_roots_leq_leq, force)
+
+
 
 lemma poly_no_roots_less_less:
   "(\<forall>x. a < x \<and> x < b \<longrightarrow> poly p x \<noteq> 0) \<longleftrightarrow>
@@ -260,6 +278,13 @@ next
             auto intro: poly_roots_finite)
 qed
 
+lemma poly_pos_between_less_less:
+  "(\<forall>x. a < x \<and> x < b \<longrightarrow> poly p x > 0) \<longleftrightarrow> 
+   (a \<ge> b \<or> (p \<noteq> 0 \<and> poly p ((a+b)/2) > 0 \<and> 
+       count_roots_between p a b = (if poly p b = 0 then 1 else 0)))"
+  by (subst poly_pos_between_less_less, subst poly_no_roots_less_less, blast)
+
+
 
 lemma poly_no_roots_leq_less:
   "(\<forall>x. a \<le> x \<and> x < b \<longrightarrow> poly p x \<noteq> 0) \<longleftrightarrow> 
@@ -277,6 +302,13 @@ next
         auto split: split_if_asm simp: less_eq_real_def) 
 qed
 
+lemma poly_pos_between_leq_less:
+  "(\<forall>x. a \<le> x \<and> x < b \<longrightarrow> poly p x > 0) \<longleftrightarrow> 
+   (a \<ge> b \<or> (p \<noteq> 0 \<and> poly p a > 0 \<and> count_roots_between p a b = 
+        (if a < b \<and> poly p b = 0 then 1 else 0)))"
+ by (subst poly_pos_between_leq_less, subst poly_no_roots_leq_less, force)
+
+
 lemma poly_no_roots_greater:
   "(\<forall>x. x > a \<longrightarrow> poly p x \<noteq> 0) \<longleftrightarrow> (p \<noteq> 0 \<and> count_roots_above p a = 0)"
 proof-
@@ -285,10 +317,22 @@ proof-
                         intro: poly_roots_finite )
 qed
 
+lemma poly_pos_greater:
+  "(\<forall>x. x > a \<longrightarrow> poly p x > 0) \<longleftrightarrow> 
+   p \<noteq> 0 \<and> poly_inf p = 1 \<and> count_roots_above p a = 0"
+  by (subst poly_pos_greater, subst poly_no_roots_greater, blast)
+
 lemma poly_no_roots_leq:
   "(\<forall>x. x \<le> a \<longrightarrow> poly p x \<noteq> 0) \<longleftrightarrow> (p \<noteq> 0 \<and> count_roots_below p a = 0)"
     by (auto simp: count_roots_below_correct card_eq_0_iff
              intro: poly_roots_finite )
+
+lemma poly_pos_leq:
+  "(\<forall>x. x \<le> a \<longrightarrow> poly p x > 0) \<longleftrightarrow> 
+   p \<noteq> 0 \<and> poly_neg_inf p = 1 \<and> count_roots_below p a = 0"
+  by (subst poly_pos_leq, subst poly_no_roots_leq, blast)
+
+
 
 lemma poly_no_roots_geq:
   "(\<forall>x. x \<ge> a \<longrightarrow> poly p x \<noteq> 0) \<longleftrightarrow>
@@ -304,6 +348,11 @@ next
       by (subst (asm) poly_no_roots_greater[symmetric], 
           auto simp: less_eq_real_def)
 qed
+
+lemma poly_pos_geq:
+  "(\<forall>x. x \<ge> a \<longrightarrow> poly p x > 0) \<longleftrightarrow> 
+   p \<noteq> 0 \<and> poly_inf p = 1 \<and> poly p a \<noteq> 0 \<and> count_roots_above p a = 0"
+  by (subst poly_pos_geq, subst poly_no_roots_geq, blast)
 
 lemma poly_no_roots_less:
   "(\<forall>x. x < a \<longrightarrow> poly p x \<noteq> 0) \<longleftrightarrow>
@@ -327,6 +376,13 @@ next
       by (subst (asm) card_eq_0_iff, auto intro: poly_roots_finite)
 qed
 
+lemma poly_pos_less:
+  "(\<forall>x. x < a \<longrightarrow> poly p x > 0) \<longleftrightarrow> 
+   p \<noteq> 0 \<and> poly_neg_inf p = 1 \<and> count_roots_below p a = 
+       (if poly p a = 0 then 1 else 0)"
+  by (subst poly_pos_less, subst poly_no_roots_less, blast)
+
+
 lemmas sturm_card_substs = poly_card_roots poly_card_roots_less_leq 
     poly_card_roots_leq_less poly_card_roots_less_less poly_card_roots_leq_leq
     poly_card_roots_less poly_card_roots_leq poly_card_roots_greater
@@ -334,7 +390,11 @@ lemmas sturm_card_substs = poly_card_roots poly_card_roots_less_leq
 
 lemmas sturm_prop_substs = poly_no_roots poly_no_roots_less_leq 
     poly_no_roots_leq_leq poly_no_roots_less_less poly_no_roots_leq_less
-    poly_no_roots_leq poly_no_roots_less poly_no_roots_geq poly_no_roots_greater
+    poly_no_roots_leq poly_no_roots_less poly_no_roots_geq 
+    poly_no_roots_greater
+    poly_pos poly_pos_greater poly_pos_geq poly_pos_less poly_pos_leq
+    poly_pos_between_leq_less poly_pos_between_less_leq
+    poly_pos_between_leq_leq poly_pos_between_less_less
 
 
 
@@ -342,6 +402,7 @@ definition "PR_TAG x \<equiv> x"
 
 lemma sturm_id_PR_prio0:
   "{x::real. P x} = {x::real. (PR_TAG P) x}"
+  "(\<forall>x::real. f x < g x) = (\<forall>x::real. PR_TAG (\<lambda>x. f x < g x) x)"
   "(\<forall>x::real. P x) = (\<forall>x::real. \<not>(PR_TAG (\<lambda>x. \<not>P x)) x)"
   by (simp_all add: PR_TAG_def)
 
@@ -350,6 +411,10 @@ lemma sturm_id_PR_prio1:
   "{x::real. x \<le> a \<and> P x} = {x::real. x \<le> a \<and> (PR_TAG P) x}"
   "{x::real. x \<ge> b \<and> P x} = {x::real. x \<ge> b \<and> (PR_TAG P) x}"
   "{x::real. x > b \<and> P x} = {x::real. x > b \<and> (PR_TAG P) x}"
+  "(\<forall>x::real < a. f x < g x) = (\<forall>x::real < a. PR_TAG (\<lambda>x. f x < g x) x)"
+  "(\<forall>x::real \<le> a. f x < g x) = (\<forall>x::real \<le> a. PR_TAG (\<lambda>x. f x < g x) x)"
+  "(\<forall>x::real > a. f x < g x) = (\<forall>x::real > a. PR_TAG (\<lambda>x. f x < g x) x)"
+  "(\<forall>x::real \<ge> a. f x < g x) = (\<forall>x::real \<ge> a. PR_TAG (\<lambda>x. f x < g x) x)"
   "(\<forall>x::real < a. P x) = (\<forall>x::real < a. \<not>(PR_TAG (\<lambda>x. \<not>P x)) x)"
   "(\<forall>x::real > a. P x) = (\<forall>x::real > a. \<not>(PR_TAG (\<lambda>x. \<not>P x)) x)"
   "(\<forall>x::real \<le> a. P x) = (\<forall>x::real \<le> a. \<not>(PR_TAG (\<lambda>x. \<not>P x)) x)"
@@ -365,6 +430,14 @@ lemma sturm_id_PR_prio2:
        {x::real. x \<ge> a \<and> x < b \<and> PR_TAG P x}"
   "{x::real. x > a \<and> x < b \<and> P x} = 
        {x::real. x > a \<and> x < b \<and> PR_TAG P x}"
+  "(\<forall>x::real. a < x \<and> x \<le> b \<longrightarrow> f x < g x) = 
+       (\<forall>x::real. a < x \<and> x \<le> b \<longrightarrow> PR_TAG (\<lambda>x. f x < g x) x)"
+  "(\<forall>x::real. a \<le> x \<and> x \<le> b \<longrightarrow> f x < g x) = 
+       (\<forall>x::real. a \<le> x \<and> x \<le> b \<longrightarrow> PR_TAG (\<lambda>x. f x < g x) x)"
+  "(\<forall>x::real. a < x \<and> x < b \<longrightarrow> f x < g x) = 
+       (\<forall>x::real. a < x \<and> x < b \<longrightarrow> PR_TAG (\<lambda>x. f x < g x) x)"
+  "(\<forall>x::real. a \<le> x \<and> x < b \<longrightarrow> f x < g x) = 
+       (\<forall>x::real. a \<le> x \<and> x < b \<longrightarrow> PR_TAG (\<lambda>x. f x < g x) x)"
   "(\<forall>x::real. a < x \<and> x \<le> b \<longrightarrow> P x) = 
        (\<forall>x::real. a < x \<and> x \<le> b \<longrightarrow> \<not>(PR_TAG (\<lambda>x. \<not>P x)) x)"
   "(\<forall>x::real. a \<le> x \<and> x \<le> b \<longrightarrow> P x) = 
@@ -390,9 +463,9 @@ lemma PR_TAG_intro_prio0:
   "\<lbrakk>PR_TAG f = (\<lambda>x. poly p x); PR_TAG g = (\<lambda>x. poly q x)\<rbrakk>
        \<Longrightarrow> PR_TAG (\<lambda>x. f x \<noteq> g x) = (\<lambda>x. poly (p-q) x \<noteq> 0)"
   "\<lbrakk>PR_TAG f = (\<lambda>x. poly p x); PR_TAG g = (\<lambda>x. poly q x)\<rbrakk>
-       \<Longrightarrow> PR_TAG (\<lambda>x. f x < g x) = (\<lambda>x. poly (p-q) x < 0)"
+       \<Longrightarrow> PR_TAG (\<lambda>x. f x < g x) = (\<lambda>x. poly (q-p) x > 0)"
   "\<lbrakk>PR_TAG f = (\<lambda>x. poly p x); PR_TAG g = (\<lambda>x. poly q x)\<rbrakk>
-       \<Longrightarrow> PR_TAG (\<lambda>x. f x \<le> g x) = (\<lambda>x. poly (p-q) x \<le> 0)"
+       \<Longrightarrow> PR_TAG (\<lambda>x. f x \<le> g x) = (\<lambda>x. poly (q-p) x \<ge> 0)"
 
   "PR_TAG f = (\<lambda>x. poly p x) \<Longrightarrow> PR_TAG (\<lambda>x. -f x) = (\<lambda>x. poly (-p) x)"
   "\<lbrakk>PR_TAG f = (\<lambda>x. poly p x); PR_TAG g = (\<lambda>x. poly q x)\<rbrakk>
@@ -405,7 +478,7 @@ lemma PR_TAG_intro_prio0:
   "PR_TAG (\<lambda>x. poly p x :: real) = (\<lambda>x. poly p x)"
   "PR_TAG (\<lambda>x. x::real) = (\<lambda>x. poly [:0,1:] x)"
   "PR_TAG (\<lambda>x. a::real) = (\<lambda>x. poly [:a:] x)"
-  by (simp_all add: PR_TAG_def poly_eq_0_iff_dvd)
+  by (simp_all add: PR_TAG_def poly_eq_0_iff_dvd field_simps)
 
 
 lemma PR_TAG_intro_prio1:
@@ -413,10 +486,12 @@ lemma PR_TAG_intro_prio1:
   shows
   "PR_TAG f = (\<lambda>x. poly p x) \<Longrightarrow> PR_TAG (\<lambda>x. f x = 0) = (\<lambda>x. poly p x = 0)"
   "PR_TAG f = (\<lambda>x. poly p x) \<Longrightarrow> PR_TAG (\<lambda>x. f x \<noteq> 0) = (\<lambda>x. poly p x \<noteq> 0)"
-  "PR_TAG f = (\<lambda>x. poly p x) \<Longrightarrow> PR_TAG (\<lambda>x. f x \<le> 0) = (\<lambda>x. poly p x \<le> 0)"
-  "PR_TAG f = (\<lambda>x. poly p x) \<Longrightarrow> PR_TAG (\<lambda>x. f x < 0) = (\<lambda>x. poly p x < 0)"
   "PR_TAG f = (\<lambda>x. poly p x) \<Longrightarrow> PR_TAG (\<lambda>x. 0 = f x) = (\<lambda>x. poly p x = 0)"
   "PR_TAG f = (\<lambda>x. poly p x) \<Longrightarrow> PR_TAG (\<lambda>x. 0 \<noteq> f x) = (\<lambda>x. poly p x \<noteq> 0)"
+  "PR_TAG f = (\<lambda>x. poly p x) \<Longrightarrow> PR_TAG (\<lambda>x. f x \<ge> 0) = (\<lambda>x. poly p x \<ge> 0)"
+  "PR_TAG f = (\<lambda>x. poly p x) \<Longrightarrow> PR_TAG (\<lambda>x. f x > 0) = (\<lambda>x. poly p x > 0)"
+  "PR_TAG f = (\<lambda>x. poly p x) \<Longrightarrow> PR_TAG (\<lambda>x. f x \<le> 0) = (\<lambda>x. poly (-p) x \<ge> 0)"
+  "PR_TAG f = (\<lambda>x. poly p x) \<Longrightarrow> PR_TAG (\<lambda>x. f x < 0) = (\<lambda>x. poly (-p) x > 0)"
   "PR_TAG f = (\<lambda>x. poly p x) \<Longrightarrow> 
        PR_TAG (\<lambda>x. 0 \<le> f x) = (\<lambda>x. poly (-p) x \<le> 0)"
   "PR_TAG f = (\<lambda>x. poly p x) \<Longrightarrow> 
@@ -451,12 +526,25 @@ using assms by (intro ext, simp_all add: PR_TAG_def field_simps
                     poly_monom power_add divide_real_def)
 
 lemma sturm_meta_spec: "(\<And>x::real. P x) \<Longrightarrow> P x" by simp
+lemma sturm_imp_conv: 
+  "(a < x \<longrightarrow> x < b \<longrightarrow> c) \<longleftrightarrow> (a < x \<and> x < b \<longrightarrow> c)"
+  "(a \<le> x \<longrightarrow> x < b \<longrightarrow> c) \<longleftrightarrow> (a \<le> x \<and> x < b \<longrightarrow> c)"
+  "(a < x \<longrightarrow> x \<le> b \<longrightarrow> c) \<longleftrightarrow> (a < x \<and> x \<le> b \<longrightarrow> c)"
+  "(a \<le> x \<longrightarrow> x \<le> b \<longrightarrow> c) \<longleftrightarrow> (a \<le> x \<and> x \<le> b \<longrightarrow> c)"
+  "(x < b \<longrightarrow> a < x \<longrightarrow> c) \<longleftrightarrow> (a < x \<and> x < b \<longrightarrow> c)"
+  "(x < b \<longrightarrow> a \<le> x \<longrightarrow> c) \<longleftrightarrow> (a \<le> x \<and> x < b \<longrightarrow> c)"
+  "(x \<le> b \<longrightarrow> a < x \<longrightarrow> c) \<longleftrightarrow> (a < x \<and> x \<le> b \<longrightarrow> c)"
+  "(x \<le> b \<longrightarrow> a \<le> x \<longrightarrow> c) \<longleftrightarrow> (a \<le> x \<and> x \<le> b \<longrightarrow> c)"
+  by auto
+
 
 ML_file "sturm.ML"
 
 method_setup sturm = {*
   Scan.succeed (fn ctxt => SIMPLE_METHOD' (Sturm.sturm_tac ctxt true))
 *}
+
+lemma "(x::real) > 1 \<Longrightarrow> x^3 > 1" by sturm
 
 lemma
   fixes x :: real
@@ -488,5 +576,6 @@ schematic_lemma
 lemma "\<forall>x::real. x*x \<noteq> 0 \<or> x*x - 1 \<noteq> 2*x" by sturm
 
 lemma "(x::real)*x+1 \<noteq> 0 \<and> (x^2+1)*(x^2+2) \<noteq> 0" by sturm
+
 
 end

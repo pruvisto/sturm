@@ -43,7 +43,7 @@ struct
           in  EVERY (map tac trms) thm
           end;
     in  FIRST (map subst_tac sturm_id_thmss)
-        THEN REPEAT (subst_tac @{thms HOL.nnf_simps not_less not_le})
+        THEN REPEAT (subst_tac @{thms HOL.nnf_simps(1,2,5) not_less not_le})
         THEN process_PR_tag_tac
     end;
 
@@ -175,6 +175,8 @@ struct
 
     fun sturm_tac ctxt keep_goal i =
         prune_params_tac
+        THEN TRY (Object_Logic.full_atomize_tac i)
+        THEN TRY (EqSubst.eqsubst_tac ctxt [1] @{thms sturm_imp_conv} i)
         THEN TRY (convert_meta_spec_tac ctxt i)
         THEN TRY (Object_Logic.full_atomize_tac i)
         THEN sturm_preprocess_tac ctxt i

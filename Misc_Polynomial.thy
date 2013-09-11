@@ -308,6 +308,13 @@ next
     qed
 qed
 
+lemma poly_different_sign_imp_root':
+  assumes "sgn (poly p a) \<noteq> sgn (poly p (b::real))"
+  shows "\<exists>x. poly p x = 0"
+using assms by (cases "a < b", auto dest!: poly_different_sign_imp_root 
+                                    simp: less_eq_real_def not_less)
+
+
 lemma no_roots_inbetween_imp_same_sign:
   assumes "a < b" "\<forall>x. a \<le> x \<and> x \<le> b \<longrightarrow> poly p x \<noteq> (0::real)"
   shows "sgn (poly p a) = sgn (poly p b)"
@@ -480,65 +487,6 @@ proof-
   qed
 qed
 
-
-lemma x_pow_n_limit: 
-  assumes "n \<ge> 1"
-  shows "LIM (x::real) at_top. x^n :> at_top"
-proof (simp only: filterlim_at_top eventually_at_top_linorder, clarify)
-  fix b :: real
-  let ?x\<^sub>0 = "max b 1"
-  show "\<exists>x\<^sub>0. \<forall>x\<ge>x\<^sub>0. x ^ n \<ge> b"
-  proof (rule exI[of _ ?x\<^sub>0], clarify)
-    fix x assume "x \<ge> max b 1"
-    have "b \<le> ?x\<^sub>0" by simp
-    also from power_increasing[OF assms, of ?x\<^sub>0] 
-        have "... \<le> ?x\<^sub>0 ^ n" by simp
-    also from power_mono[OF `x \<ge> ?x\<^sub>0`] have "... \<le> x ^ n" by simp
-    finally show "b \<le> x ^ n" .
-  qed
-qed
-
-lemma x_pow_n_limit_at_top: 
-  assumes "n \<ge> 1"
-  shows "LIM (x::real) at_top. x^n :> at_top"
-proof (simp only: filterlim_at_top eventually_at_top_linorder, clarify)
-  fix b :: real
-  let ?x\<^sub>0 = "max b 1"
-  show "\<exists>x\<^sub>0. \<forall>x\<ge>x\<^sub>0. x ^ n \<ge> b"
-  proof (rule exI[of _ ?x\<^sub>0], clarify)
-    fix x assume "x \<ge> max b 1"
-    have "b \<le> ?x\<^sub>0" by simp
-    also from power_increasing[OF assms, of ?x\<^sub>0] 
-        have "... \<le> ?x\<^sub>0 ^ n" by simp
-    also from power_mono[OF `x \<ge> ?x\<^sub>0`] have "... \<le> x ^ n" by simp
-    finally show "b \<le> x ^ n" .
-  qed
-qed
-
-lemma x_pow_n_limit_at_bot[intro]: 
-  assumes "n \<ge> 1"
-  shows "even n \<Longrightarrow> LIM (x::real) at_bot. x^n :> at_top"
-    and "odd n \<Longrightarrow> LIM (x::real) at_bot. x^n :> at_bot"
-proof-
-  assume "even n"
-  show "LIM (x::real) at_bot. x^n :> at_top"
-  proof (subst filterlim_cong, rule refl, rule refl)
-    from `even n` show "eventually (\<lambda>x::real. x^n = (-x)^n) at_bot" 
-        by (simp add: neg_power_if)
-    show "LIM (x::real) at_bot. (-x)^n :> at_top" using assms
-        by (simp add: filterlim_at_bot_mirror x_pow_n_limit_at_top)
-  qed
-next
-  assume "odd n"
-  show "LIM (x::real) at_bot. x^n :> at_bot"
-  proof (subst filterlim_cong, rule refl, rule refl)
-    from `odd n` show "eventually (\<lambda>x::real. x^n = -((-x)^n)) at_bot" 
-        by (simp add: neg_power_if)
-    show "LIM (x::real) at_bot. -((-x)^n) :> at_bot" using assms
-        by (simp add: filterlim_at_bot_mirror filterlim_uminus_at_bot 
-                      x_pow_n_limit_at_top)
-  qed
-qed
 
 
 
@@ -812,5 +760,256 @@ proof-
   from goal1[OF lu_props(1) this lu_props(2,3)] show thesis .
 qed
 
+
+section {* Auxiliary Lemmas for deciding positivity of polynomials *}
+
+lemma poly_pos:
+  "(\<forall>x::real. poly p x > 0) \<longleftrightarrow> poly_inf p = 1 \<and> (\<forall>x. poly p x \<noteq> 0)"
+proof (intro iffI conjI)
+  assume A: "\<forall>x::real. poly p x > 0"
+  have "\<And>x. poly p (x::real) > 0 \<Longrightarrow> poly p x \<noteq> 0" by simp
+  with A show "\<forall>x::real. poly p x \<noteq> 0" by simp
+  
+  from poly_lim_inf obtain x where "sgn (poly p x) = poly_inf p"
+      by (auto simp: eventually_at_top_linorder)
+  with A show "poly_inf p = 1" 
+      by (simp add: sgn_real_def split: split_if_asm)
+next
+  assume "poly_inf p = 1 \<and> (\<forall>x. poly p x \<noteq> 0)"
+  hence A: "poly_inf p = 1" and B: "(\<forall>x. poly p x \<noteq> 0)" by simp_all
+  from poly_lim_inf obtain x where C: "sgn (poly p x) = poly_inf p"
+      by (auto simp: eventually_at_top_linorder)
+  show "\<forall>x. poly p x > 0"
+  proof (rule ccontr)
+    assume "\<not>(\<forall>x. poly p x > 0)"
+    then obtain x' where "poly p x' \<le> 0" by (auto simp: not_less)
+    with A and C have "sgn (poly p x') \<noteq> sgn (poly p x)" 
+        by (auto simp: sgn_real_def split: split_if_asm)
+    from poly_different_sign_imp_root'[OF this] and B 
+        show False by blast
+  qed
+qed
+
+lemma poly_pos_greater:
+  "(\<forall>x::real. x > a \<longrightarrow> poly p x > 0) \<longleftrightarrow> 
+    poly_inf p = 1 \<and> (\<forall>x. x > a \<longrightarrow> poly p x \<noteq> 0)"
+proof (intro iffI conjI)
+  assume A: "\<forall>x::real. x > a \<longrightarrow> poly p x > 0"
+  have "\<And>x. poly p (x::real) > 0 \<Longrightarrow> poly p x \<noteq> 0" by simp
+  with A show "\<forall>x::real. x > a \<longrightarrow> poly p x \<noteq> 0" by auto
+  
+  from poly_lim_inf obtain x\<^sub>0 where 
+      "\<forall>x\<ge>x\<^sub>0. sgn (poly p x) = poly_inf p"
+      by (auto simp: eventually_at_top_linorder)
+  hence "poly_inf p = sgn (poly p (max x\<^sub>0 (a + 1)))" by simp
+  also from A have "... = 1" by force
+  finally show "poly_inf p = 1" .
+next
+  assume "poly_inf p = 1 \<and> (\<forall>x. x > a \<longrightarrow> poly p x \<noteq> 0)"
+  hence A: "poly_inf p = 1" and 
+        B: "(\<forall>x. x > a \<longrightarrow> poly p x \<noteq> 0)" by simp_all
+  from poly_lim_inf obtain x\<^sub>0 where 
+      C: "\<forall>x\<ge>x\<^sub>0. sgn (poly p x) = poly_inf p"
+      by (auto simp: eventually_at_top_linorder)
+  hence "sgn (poly p (max x\<^sub>0 (a+1))) = poly_inf p" by simp
+  with A have D: "sgn (poly p (max x\<^sub>0 (a+1))) = 1" by simp
+  show "\<forall>x. x > a \<longrightarrow> poly p x > 0"
+  proof (rule ccontr)
+    assume "\<not>(\<forall>x. x > a \<longrightarrow> poly p x > 0)"
+    then obtain x' where "x' > a" "poly p x' \<le> 0" by (auto simp: not_less)
+    with A and D have E: "sgn (poly p x') \<noteq> sgn (poly p (max x\<^sub>0(a+1)))"
+        by (auto simp: sgn_real_def split: split_if_asm)
+    show False
+        apply (cases x' "max x\<^sub>0 (a+1)" rule: linorder_cases)
+        using B E `x' > a` 
+            apply (force dest!: poly_different_sign_imp_root[of _ _ p])+
+        done
+  qed
+qed
+
+lemma poly_pos_geq:
+  "(\<forall>x::real. x \<ge> a \<longrightarrow> poly p x > 0) \<longleftrightarrow> 
+    poly_inf p = 1 \<and> (\<forall>x. x \<ge> a \<longrightarrow> poly p x \<noteq> 0)"
+proof (intro iffI conjI)
+  assume A: "\<forall>x::real. x \<ge> a \<longrightarrow> poly p x > 0"
+  hence "\<forall>x::real. x > a \<longrightarrow> poly p x > 0" by simp
+  also note poly_pos_greater
+  finally have "poly_inf p = 1" "(\<forall>x>a. poly p x \<noteq> 0)" by simp_all
+  moreover from A have "poly p a > 0" by simp
+  ultimately show "poly_inf p = 1" "\<forall>x\<ge>a. poly p x \<noteq> 0" 
+      by (auto simp: less_eq_real_def)
+next
+  assume "poly_inf p = 1 \<and> (\<forall>x. x \<ge> a \<longrightarrow> poly p x \<noteq> 0)"
+  hence A: "poly_inf p = 1" and 
+        B: "poly p a \<noteq> 0" and C: "\<forall>x>a. poly p x \<noteq> 0" by simp_all
+  from A and C and poly_pos_greater have "\<forall>x>a. poly p x > 0" by simp
+  moreover with B C poly_IVT_pos[of a "a+1" p] have "poly p a > 0" by force
+  ultimately show "\<forall>x\<ge>a. poly p x > 0" by (auto simp: less_eq_real_def)
+qed
+
+lemma poly_pos_less:
+  "(\<forall>x::real. x < a \<longrightarrow> poly p x > 0) \<longleftrightarrow> 
+    poly_neg_inf p = 1 \<and> (\<forall>x. x < a \<longrightarrow> poly p x \<noteq> 0)"
+proof (intro iffI conjI)
+  assume A: "\<forall>x::real. x < a \<longrightarrow> poly p x > 0"
+  have "\<And>x. poly p (x::real) > 0 \<Longrightarrow> poly p x \<noteq> 0" by simp
+  with A show "\<forall>x::real. x < a \<longrightarrow> poly p x \<noteq> 0" by auto
+  
+  from poly_lim_neg_inf obtain x\<^sub>0 where 
+      "\<forall>x\<le>x\<^sub>0. sgn (poly p x) = poly_neg_inf p"
+      by (auto simp: eventually_at_bot_linorder)
+  hence "poly_neg_inf p = sgn (poly p (min x\<^sub>0 (a - 1)))" by simp
+  also from A have "... = 1" by force
+  finally show "poly_neg_inf p = 1" .
+next
+  assume "poly_neg_inf p = 1 \<and> (\<forall>x. x < a \<longrightarrow> poly p x \<noteq> 0)"
+  hence A: "poly_neg_inf p = 1" and 
+        B: "(\<forall>x. x < a \<longrightarrow> poly p x \<noteq> 0)" by simp_all
+  from poly_lim_neg_inf obtain x\<^sub>0 where 
+      C: "\<forall>x\<le>x\<^sub>0. sgn (poly p x) = poly_neg_inf p"
+      by (auto simp: eventually_at_bot_linorder)
+  hence "sgn (poly p (min x\<^sub>0 (a - 1))) = poly_neg_inf p" by simp
+  with A have D: "sgn (poly p (min x\<^sub>0 (a - 1))) = 1" by simp
+  show "\<forall>x. x < a \<longrightarrow> poly p x > 0"
+  proof (rule ccontr)
+    assume "\<not>(\<forall>x. x < a \<longrightarrow> poly p x > 0)"
+    then obtain x' where "x' < a" "poly p x' \<le> 0" by (auto simp: not_less)
+    with A and D have E: "sgn (poly p x') \<noteq> sgn (poly p (min x\<^sub>0 (a - 1)))"
+        by (auto simp: sgn_real_def split: split_if_asm)
+    show False
+        apply (cases x' "min x\<^sub>0 (a - 1)" rule: linorder_cases)
+        using B E `x' < a` 
+            apply (auto dest!: poly_different_sign_imp_root[of _ _ p])+
+        done
+  qed
+qed
+
+lemma poly_pos_leq:
+  "(\<forall>x::real. x \<le> a \<longrightarrow> poly p x > 0) \<longleftrightarrow> 
+    poly_neg_inf p = 1 \<and> (\<forall>x. x \<le> a \<longrightarrow> poly p x \<noteq> 0)"
+proof (intro iffI conjI)
+  assume A: "\<forall>x::real. x \<le> a \<longrightarrow> poly p x > 0"
+  hence "\<forall>x::real. x < a \<longrightarrow> poly p x > 0" by simp
+  also note poly_pos_less
+  finally have "poly_neg_inf p = 1" "(\<forall>x<a. poly p x \<noteq> 0)" by simp_all
+  moreover from A have "poly p a > 0" by simp
+  ultimately show "poly_neg_inf p = 1" "\<forall>x\<le>a. poly p x \<noteq> 0" 
+      by (auto simp: less_eq_real_def)
+next
+  assume "poly_neg_inf p = 1 \<and> (\<forall>x. x \<le> a \<longrightarrow> poly p x \<noteq> 0)"
+  hence A: "poly_neg_inf p = 1" and 
+        B: "poly p a \<noteq> 0" and C: "\<forall>x<a. poly p x \<noteq> 0" by simp_all
+  from A and C and poly_pos_less have "\<forall>x<a. poly p x > 0" by simp
+  moreover with B C poly_IVT_neg[of "a - 1" a p] have "poly p a > 0" by force
+  ultimately show "\<forall>x\<le>a. poly p x > 0" by (auto simp: less_eq_real_def)
+qed
+
+lemma poly_pos_between_less_less:
+  "(\<forall>x::real. a < x \<and> x < b \<longrightarrow> poly p x > 0) \<longleftrightarrow> 
+    (a \<ge> b \<or> poly p ((a+b)/2) > 0) \<and> (\<forall>x. a < x \<and> x < b \<longrightarrow> poly p x \<noteq> 0)"
+proof (intro iffI conjI)
+  assume A: "\<forall>x. a < x \<and> x < b \<longrightarrow> poly p x > 0"
+  have "\<And>x. poly p (x::real) > 0 \<Longrightarrow> poly p x \<noteq> 0" by simp
+  with A show "\<forall>x::real. a < x \<and> x < b \<longrightarrow> poly p x \<noteq> 0" by auto
+  from A show "a \<ge> b \<or> poly p ((a+b)/2) > 0" by (cases "a < b", auto)
+next
+  assume "(b \<le> a \<or> 0 < poly p ((a+b)/2)) \<and> (\<forall>x. a<x \<and> x<b \<longrightarrow> poly p x \<noteq> 0)"
+  hence A: "b \<le> a \<or> 0 < poly p ((a+b)/2)" and 
+        B: "\<forall>x. a<x \<and> x<b \<longrightarrow> poly p x \<noteq> 0" by simp_all
+  show "\<forall>x. a < x \<and> x < b \<longrightarrow> poly p x > 0"
+  proof (cases "a \<ge> b", simp, clarify, rule_tac ccontr,
+         simp only: not_le not_less)
+    fix x assume "a < b" "a < x" "x < b" "poly p x \<le> 0"
+    with B have "poly p x < 0" by (simp add: less_eq_real_def)
+    moreover from A and `a < b` have "poly p ((a+b)/2) > 0" by simp
+    ultimately have "sgn (poly p x) \<noteq> sgn (poly p ((a+b)/2))" by simp
+    thus False using B
+       apply (cases x "(a+b)/2" rule: linorder_cases)
+       apply (drule poly_different_sign_imp_root[of _ _ p], assumption,
+              insert `a < b` `a < x` `x < b` , force) []
+       apply simp
+       apply (drule poly_different_sign_imp_root[of _ _ p], simp,
+              insert `a < b` `a < x` `x < b` , force)
+       done
+  qed
+qed
+
+lemma poly_pos_between_less_leq:
+  "(\<forall>x::real. a < x \<and> x \<le> b \<longrightarrow> poly p x > 0) \<longleftrightarrow> 
+    (a \<ge> b \<or> poly p b > 0) \<and> (\<forall>x. a < x \<and> x \<le> b \<longrightarrow> poly p x \<noteq> 0)"
+proof (intro iffI conjI)
+  assume A: "\<forall>x. a < x \<and> x \<le> b \<longrightarrow> poly p x > 0"
+  have "\<And>x. poly p (x::real) > 0 \<Longrightarrow> poly p x \<noteq> 0" by simp
+  with A show "\<forall>x::real. a < x \<and> x \<le> b \<longrightarrow> poly p x \<noteq> 0" by auto
+  from A show "a \<ge> b \<or> poly p b > 0" by (cases "a < b", auto)
+next
+  assume "(b \<le> a \<or> 0 < poly p b) \<and> (\<forall>x. a<x \<and> x\<le>b \<longrightarrow> poly p x \<noteq> 0)"
+  hence A: "b \<le> a \<or> 0 < poly p b" and B: "\<forall>x. a<x \<and> x\<le>b \<longrightarrow> poly p x \<noteq> 0"
+      by simp_all
+  show "\<forall>x. a < x \<and> x \<le> b \<longrightarrow> poly p x > 0"
+  proof (cases "a \<ge> b", simp, clarify, rule_tac ccontr,
+         simp only: not_le not_less)
+    fix x assume "a < b" "a < x" "x \<le> b" "poly p x \<le> 0"
+    with B have "poly p x < 0" by (simp add: less_eq_real_def)
+    moreover from A and `a < b` have "poly p b > 0" by simp
+    ultimately have "x < b" using `x \<le> b` by (auto simp: less_eq_real_def)
+    from `poly p x < 0` and `poly p b > 0`
+        have "sgn (poly p x) \<noteq> sgn (poly p b)" by simp
+    from poly_different_sign_imp_root[OF `x < b` this] and B and `x > a`
+        show False by auto
+  qed
+qed
+
+lemma poly_pos_between_leq_less:
+  "(\<forall>x::real. a \<le> x \<and> x < b \<longrightarrow> poly p x > 0) \<longleftrightarrow> 
+    (a \<ge> b \<or> poly p a > 0) \<and> (\<forall>x. a \<le> x \<and> x < b \<longrightarrow> poly p x \<noteq> 0)"
+proof (intro iffI conjI)
+  assume A: "\<forall>x. a \<le> x \<and> x < b \<longrightarrow> poly p x > 0"
+  have "\<And>x. poly p (x::real) > 0 \<Longrightarrow> poly p x \<noteq> 0" by simp
+  with A show "\<forall>x::real. a \<le> x \<and> x < b \<longrightarrow> poly p x \<noteq> 0" by auto
+  from A show "a \<ge> b \<or> poly p a > 0" by (cases "a < b", auto)
+next
+  assume "(b \<le> a \<or> 0 < poly p a) \<and> (\<forall>x. a\<le>x \<and> x<b \<longrightarrow> poly p x \<noteq> 0)"
+  hence A: "b \<le> a \<or> 0 < poly p a" and B: "\<forall>x. a\<le>x \<and> x<b \<longrightarrow> poly p x \<noteq> 0"
+      by simp_all
+  show "\<forall>x. a \<le> x \<and> x < b \<longrightarrow> poly p x > 0"
+  proof (cases "a \<ge> b", simp, clarify, rule_tac ccontr,
+         simp only: not_le not_less)
+    fix x assume "a < b" "a \<le> x" "x < b" "poly p x \<le> 0"
+    with B have "poly p x < 0" by (simp add: less_eq_real_def)
+    moreover from A and `a < b` have "poly p a > 0" by simp
+    ultimately have "x > a" using `x \<ge> a` by (auto simp: less_eq_real_def)
+    from `poly p x < 0` and `poly p a > 0`
+        have "sgn (poly p a) \<noteq> sgn (poly p x)" by simp
+    from poly_different_sign_imp_root[OF `x > a` this] and B and `x < b`
+        show False by auto
+  qed
+qed
+
+lemma poly_pos_between_leq_leq:
+  "(\<forall>x::real. a \<le> x \<and> x \<le> b \<longrightarrow> poly p x > 0) \<longleftrightarrow> 
+    (a > b \<or> poly p a > 0) \<and> (\<forall>x. a \<le> x \<and> x \<le> b \<longrightarrow> poly p x \<noteq> 0)"
+proof (intro iffI conjI)
+  assume A: "\<forall>x. a \<le> x \<and> x \<le> b \<longrightarrow> poly p x > 0"
+  have "\<And>x. poly p (x::real) > 0 \<Longrightarrow> poly p x \<noteq> 0" by simp
+  with A show "\<forall>x::real. a \<le> x \<and> x \<le> b \<longrightarrow> poly p x \<noteq> 0" by auto
+  from A show "a > b \<or> poly p a > 0" by (cases "a \<le> b", auto)
+next
+  assume "(b < a \<or> 0 < poly p a) \<and> (\<forall>x. a\<le>x \<and> x\<le>b \<longrightarrow> poly p x \<noteq> 0)"
+  hence A: "b < a \<or> 0 < poly p a" and B: "\<forall>x. a\<le>x \<and> x\<le>b \<longrightarrow> poly p x \<noteq> 0"
+      by simp_all
+  show "\<forall>x. a \<le> x \<and> x \<le> b \<longrightarrow> poly p x > 0"
+  proof (cases "a > b", simp, clarify, rule_tac ccontr,
+         simp only: not_le not_less)
+    fix x assume "a \<le> b" "a \<le> x" "x \<le> b" "poly p x \<le> 0"
+    with B have "poly p x < 0" by (simp add: less_eq_real_def)
+    moreover from A and `a \<le> b` have "poly p a > 0" by simp
+    ultimately have "x > a" using `x \<ge> a` by (auto simp: less_eq_real_def)
+    from `poly p x < 0` and `poly p a > 0`
+        have "sgn (poly p a) \<noteq> sgn (poly p x)" by simp
+    from poly_different_sign_imp_root[OF `x > a` this] and B and `x \<le> b`
+        show False by auto
+  qed
+qed
 
 end

@@ -91,4 +91,47 @@ proof-
   ultimately show "f a = f b" by force
 qed
 
+
+lemma x_pow_n_limit_at_top[intro]:
+  assumes "n \<ge> 1"
+  shows "LIM (x::real) at_top. x^n :> at_top"
+proof (simp only: filterlim_at_top eventually_at_top_linorder, clarify)
+  fix b :: real
+  let ?x\<^sub>0 = "max b 1"
+  show "\<exists>x\<^sub>0. \<forall>x\<ge>x\<^sub>0. x ^ n \<ge> b"
+  proof (rule exI[of _ ?x\<^sub>0], clarify)
+    fix x assume "x \<ge> max b 1"
+    have "b \<le> ?x\<^sub>0" by simp
+    also from power_increasing[OF assms, of ?x\<^sub>0] 
+        have "... \<le> ?x\<^sub>0 ^ n" by simp
+    also from power_mono[OF `x \<ge> ?x\<^sub>0`] have "... \<le> x ^ n" by simp
+    finally show "b \<le> x ^ n" .
+  qed
+qed
+
+lemma x_pow_n_limit_at_bot[intro]: 
+  assumes "n \<ge> 1"
+  shows "even n \<Longrightarrow> LIM (x::real) at_bot. x^n :> at_top"
+    and "odd n \<Longrightarrow> LIM (x::real) at_bot. x^n :> at_bot"
+proof-
+  assume "even n"
+  show "LIM (x::real) at_bot. x^n :> at_top"
+  proof (subst filterlim_cong, rule refl, rule refl)
+    from `even n` show "eventually (\<lambda>x::real. x^n = (-x)^n) at_bot" 
+        by (simp add: neg_power_if)
+    show "LIM (x::real) at_bot. (-x)^n :> at_top" using assms
+        by (simp add: filterlim_at_bot_mirror x_pow_n_limit_at_top)
+  qed
+next
+  assume "odd n"
+  show "LIM (x::real) at_bot. x^n :> at_bot"
+  proof (subst filterlim_cong, rule refl, rule refl)
+    from `odd n` show "eventually (\<lambda>x::real. x^n = -((-x)^n)) at_bot" 
+        by (simp add: neg_power_if)
+    show "LIM (x::real) at_bot. -((-x)^n) :> at_bot" using assms
+        by (simp add: filterlim_at_bot_mirror filterlim_uminus_at_bot 
+                      x_pow_n_limit_at_top)
+  qed
+qed
+
 end
