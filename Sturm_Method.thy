@@ -591,4 +591,5 @@ lemma "\<forall>x::real. x*x \<noteq> 0 \<or> x*x - 1 \<noteq> 2*x" by sturm
 lemma "(x::real)*x+1 \<noteq> 0 \<and> (x^2+1)*(x^2+2) \<noteq> 0" by sturm
 
 
+
 end

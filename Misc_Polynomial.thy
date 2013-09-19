@@ -211,7 +211,7 @@ proof-
         from C d have "x^n*z = z*r*v*x^Suc n + z*s*c*x^n*(v*x') +
                           s*v*z'*x^Suc n + s*z*(v*x')*x^n + s*z*v'*x^Suc n"
             by (simp add: algebra_simps vw pderiv_mult)
-        also have "... = x^n*(x * (z*r*v + z*s*c*y + s*v*z' + s*z*y + s*z*v'))"
+        also have "... = x^n*x * (z*r*v + z*s*c*y + s*v*z' + s*z*y + s*z*v')"
             by (simp only: y, simp add: algebra_simps)
         finally have "z = x*(z*r*v+z*s*c*y+s*v*z'+s*z*y+s*z*v')"
              using `x^n \<noteq> 0` by force
@@ -318,11 +318,7 @@ using assms by (cases "a < b", auto dest!: poly_different_sign_imp_root
 lemma no_roots_inbetween_imp_same_sign:
   assumes "a < b" "\<forall>x. a \<le> x \<and> x \<le> b \<longrightarrow> poly p x \<noteq> (0::real)"
   shows "sgn (poly p a) = sgn (poly p b)"
-proof (rule ccontr)
-  assume "sgn (poly p a) \<noteq> sgn (poly p b)"
-  from  poly_different_sign_imp_root[OF `a < b` this] guess x ..
-  thus False using assms(2) by auto
-qed
+  using poly_different_sign_imp_root assms by auto
 
 
 
@@ -331,41 +327,43 @@ section {* Limits of polynomials *}
 lemma poly_neighbourhood_without_roots:
   assumes "(p :: real poly) \<noteq> 0"
   shows "eventually (\<lambda>x. poly p x \<noteq> 0) (at x\<^sub>0)"
-proof (subst eventually_at, subst dist_real_def)
-  {fix \<epsilon> :: real assume "\<epsilon> > 0"
-  have fin: "finite {x. \<bar>x-x\<^sub>0\<bar> < \<epsilon> \<and> x \<noteq> x\<^sub>0 \<and> poly p x = 0}"
-      using poly_roots_finite[OF assms] by simp
-  with `\<epsilon> > 0`have "\<exists>\<delta>>0. \<delta>\<le>\<epsilon> \<and> (\<forall>x. \<bar>x-x\<^sub>0\<bar> < \<delta> \<and> x \<noteq> x\<^sub>0 \<longrightarrow> poly p x \<noteq> 0)"
-  proof (induction "card {x. \<bar>x-x\<^sub>0\<bar> < \<epsilon> \<and> x \<noteq> x\<^sub>0 \<and> poly p x = 0}" 
-         arbitrary: \<epsilon> rule: less_induct)
-  case (less \<epsilon>)
-  let ?A = "{x. \<bar>x - x\<^sub>0\<bar> < \<epsilon> \<and> x \<noteq> x\<^sub>0 \<and> poly p x = 0}"
-  show ?case
-    proof (cases "card ?A")
-    case 0
-      hence "?A = {}" using less by auto
-      thus ?thesis using less(2) by (rule_tac exI[of _ \<epsilon>], auto)
-    next
-    case (Suc _)
-      with less(3) have "{x. \<bar>x - x\<^sub>0\<bar> < \<epsilon> \<and> x \<noteq> x\<^sub>0 \<and> poly p x = 0} \<noteq> {}" by force
-      then obtain x where x_props: "\<bar>x - x\<^sub>0\<bar> < \<epsilon>" "x \<noteq> x\<^sub>0" "poly p x = 0" by blast
-      def \<epsilon>' \<equiv> "\<bar>x - x\<^sub>0\<bar> / 2"
-      have "\<epsilon>' > 0" "\<epsilon>' < \<epsilon>" unfolding \<epsilon>'_def using x_props by simp_all
-      from x_props(1,2) and `\<epsilon> > 0`
-          have "x \<notin> {x'. \<bar>x' - x\<^sub>0\<bar> < \<epsilon>' \<and> x' \<noteq> x\<^sub>0 \<and> poly p x' = 0}" (is "_ \<notin> ?B")
-          by (auto simp: \<epsilon>'_def)
-      moreover from x_props 
-          have "x \<in> {x. \<bar>x - x\<^sub>0\<bar> < \<epsilon> \<and> x \<noteq> x\<^sub>0 \<and> poly p x = 0}" by blast
-      ultimately have "?B \<subset> ?A" by auto
-      hence "card ?B < card ?A" "finite ?B" 
-          by (rule psubset_card_mono[OF less(3)], 
-              blast intro: finite_subset[OF _ less(3)])
-      from less(1)[OF this(1) `\<epsilon>' > 0` this(2)]
-          show ?thesis using `\<epsilon>' < \<epsilon>` by force
+proof-
+  {
+    fix \<epsilon> :: real assume "\<epsilon> > 0"
+    have fin: "finite {x. \<bar>x-x\<^sub>0\<bar> < \<epsilon> \<and> x \<noteq> x\<^sub>0 \<and> poly p x = 0}"
+        using poly_roots_finite[OF assms] by simp
+    with `\<epsilon> > 0`have "\<exists>\<delta>>0. \<delta>\<le>\<epsilon> \<and> (\<forall>x. \<bar>x-x\<^sub>0\<bar> < \<delta> \<and> x \<noteq> x\<^sub>0 \<longrightarrow> poly p x \<noteq> 0)"
+    proof (induction "card {x. \<bar>x-x\<^sub>0\<bar> < \<epsilon> \<and> x \<noteq> x\<^sub>0 \<and> poly p x = 0}" 
+           arbitrary: \<epsilon> rule: less_induct)
+    case (less \<epsilon>)
+    let ?A = "{x. \<bar>x - x\<^sub>0\<bar> < \<epsilon> \<and> x \<noteq> x\<^sub>0 \<and> poly p x = 0}"
+    show ?case
+      proof (cases "card ?A")
+      case 0
+        hence "?A = {}" using less by auto
+        thus ?thesis using less(2) by (rule_tac exI[of _ \<epsilon>], auto)
+      next
+      case (Suc _)
+        with less(3) have "{x. \<bar>x - x\<^sub>0\<bar> < \<epsilon> \<and> x \<noteq> x\<^sub>0 \<and> poly p x = 0} \<noteq> {}" by force
+        then obtain x where x_props: "\<bar>x - x\<^sub>0\<bar> < \<epsilon>" "x \<noteq> x\<^sub>0" "poly p x = 0" by blast
+        def \<epsilon>' \<equiv> "\<bar>x - x\<^sub>0\<bar> / 2"
+        have "\<epsilon>' > 0" "\<epsilon>' < \<epsilon>" unfolding \<epsilon>'_def using x_props by simp_all
+        from x_props(1,2) and `\<epsilon> > 0`
+            have "x \<notin> {x'. \<bar>x' - x\<^sub>0\<bar> < \<epsilon>' \<and> x' \<noteq> x\<^sub>0 \<and> poly p x' = 0}" (is "_ \<notin> ?B")
+            by (auto simp: \<epsilon>'_def)
+        moreover from x_props 
+            have "x \<in> {x. \<bar>x - x\<^sub>0\<bar> < \<epsilon> \<and> x \<noteq> x\<^sub>0 \<and> poly p x = 0}" by blast
+        ultimately have "?B \<subset> ?A" by auto
+        hence "card ?B < card ?A" "finite ?B" 
+            by (rule psubset_card_mono[OF less(3)], 
+                blast intro: finite_subset[OF _ less(3)])
+        from less(1)[OF this(1) `\<epsilon>' > 0` this(2)]
+            show ?thesis using `\<epsilon>' < \<epsilon>` by force
+      qed
     qed
-  qed}
-  from this[of 1] 
-    show "\<exists>d>0. \<forall>x\<in>UNIV. x \<noteq> x\<^sub>0 \<and> \<bar>x - x\<^sub>0\<bar> < d \<longrightarrow> poly p x \<noteq> 0" by auto
+  }
+  from this[of "1"] 
+    show ?thesis by (auto simp: eventually_at dist_real_def)
 qed
 
 

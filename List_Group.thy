@@ -8,25 +8,23 @@ theory List_Group
 imports List
 begin
 
-fun group where
+fun group :: "'a list \<Rightarrow> 'a list" where
 "group [] = []" |
 "group [x] = [x]" |
 "group (x#y#xs) = (if x = y then group (x#xs) else x # group(y#xs))"
 
-lemma group_append_two_same[simp]: "group (xs @ [x,x]) = group (xs @ [x])"
-  by (induction xs rule: group.induct, simp_all)
 
-lemma group_append_two_different[simp]: 
-  "x \<noteq> y \<Longrightarrow> group (xs @ [x,y]) = group (xs @ [x]) @ [y]"
+lemma group_append_two: 
+    "group (xs @ [x,y]) = group (xs @ [x]) @ (if x = y then [] else [y])"
   by (induction xs rule: group.induct, simp_all)
 
 lemma group_rev[simp]: "group (rev xs) = rev (group xs)"
-  by (induction xs rule: group.induct, simp_all)
+  by (induction xs rule: group.induct, simp_all add: group_append_two)
 
 lemma group_length[simp]: "length (group xs) \<le> length xs"
   by (induction xs rule: group.induct, auto)
 
-lemma group_length_ge1[simp]: "xs \<noteq> [] \<Longrightarrow> length xs \<ge> Suc 0"
+lemma group_length_ge1[simp]: "xs \<noteq> [] \<Longrightarrow> length (group xs) \<ge> Suc 0"
   by (induction xs rule: group.induct, simp_all)
 
 lemma group_Nil_iff[simp]: "group xs = [] \<longleftrightarrow> xs = []"
@@ -45,11 +43,19 @@ lemma group_append:
   "group (xs\<^sub>1 @ x # xs\<^sub>2) = group (xs\<^sub>1 @ [x]) @ tl (group (x # xs\<^sub>2))"
   by (induction xs\<^sub>1 rule: group.induct, simp_all)
 
+lemma group_singleton:
+  "group xs = [x] \<Longrightarrow> xs = replicate (length xs) x"
+  by (induction xs rule: group.induct, auto split: split_if_asm)
+
+
 lemma group_map_injective:
   assumes "inj f"
   shows "group (map f xs) = map f (group xs)"
   by (induction xs rule: group.induct, 
       auto simp add: injD[OF assms])
 
+lemma group_sorted: "sorted xs \<Longrightarrow> sorted (group xs)"
+  by (induction xs rule: group.induct, 
+      simp_all split: split_if_asm add: sorted_Cons)
 
 end
