@@ -1,0 +1,268 @@
+\documentclass[11pt,a4paper,oneside]{article}
+\usepackage[english]{babel}
+
+\usepackage[utf8x]{inputenc} 
+\usepackage[T1]{fontenc}
+
+\usepackage{geometry} 
+\usepackage{color} 
+\usepackage{graphicx} 
+\usepackage{pifont} 
+\usepackage[babel]{csquotes}
+\usepackage{textcomp}
+\usepackage{upgreek}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{textcomp}
+\usepackage{latexsym}
+\usepackage{pgf}
+\usepackage{nicefrac}
+\usepackage{enumerate}
+\usepackage{xspace}
+
+\usepackage{tgpagella}
+
+\DeclareFontFamily{OT1}{pzc}{}
+\DeclareFontShape{OT1}{pzc}{m}{it}{<-> s * [1.10] pzcmi7t}{}
+\DeclareMathAlphabet{\mathpzc}{OT1}{pzc}{m}{it}
+\DeclareUnicodeCharacter{10230}{$\rightarrow$}
+
+\newtheorem{definition}{Definition}
+\newtheorem{lemma}[definition]{Lemma}
+\newtheorem{theorem}[definition]{Theorem}
+\newcommand{\flush}{\leavevmode\newline\vspace*{-1.5em}}
+
+%\newcommand{\qed}[0]{\vspace{-3mm}\begin{flushright}\textit{q.e.d.}\end{flushright}\vspace{3mm}}
+\newcommand{\bred}{\ensuremath{\longrightarrow_\beta}}
+\newcommand{\acos}{\textit{arccos}}
+\newcommand{\determ}[1]{\textit{det}(#1)}
+\newcommand{\RR}{\mathbb{R}}
+\newcommand{\BB}{\mathbb{B}}
+\newcommand{\NN}{\mathbb{N}}
+\newcommand{\QQ}{\mathbb{Q}}
+\newcommand{\ZZ}{\mathbb{Z}}
+\newcommand{\CC}{\mathbb{C}}
+\newcommand{\II}{\mathbb{I}}
+\newcommand{\kernel}[1]{\textit{ker}(#1)}
+\renewcommand{\epsilon}{\varepsilon}
+\renewcommand{\phi}{\varphi}
+\renewcommand{\theta}{\vartheta}
+\newcommand{\atan}{\mathit{arctan}}
+\newcommand{\rot}{\mathit{rot}}
+\newcommand{\vdiv}{\mathit{div}}
+\newcommand{\shouldbe}{\stackrel{!}{=}}
+\newcommand{\sgn}{\mathit{sgn}}
+%\renewcommand{\gcd}{\mathit{gcd}}
+%\renewcommand{\mod}{\ \mathit{mod}\ }
+
+\newcommand{\ie}{i.\,e.\xspace}
+\newcommand{\eg}{e.\,g.\xspace}
+
+\newcommand{\isabellehol}{\mbox{Isabelle}\slash HOL\xspace}
+
+\geometry{a4paper,left=30mm,right=30mm, top=25mm, bottom=30mm} 
+
+\title{A Formalisation of Sturm's theorem in \isabellehol}
+\author{Manuel Eberl}
+
+\begin{document}
+\maketitle
+\vskip-3mm
+\parindent0mm
+
+\section{Outline}
+
+This paper will give a detailed proof that closely follows the structure of the formal proof in \isabellehol, but omits the proofs for basic lemmas about analysis and polynomials. 
+
+\section{Notation}
+In this paper, $\RR[X]$ will be used to denote the set of all polynomials with real coefficients. For a polynomial $P\in\RR[X]$, we denote its derivative by $P'$. We say that some property holds in a neighbourhood of some $x_0\in\RR$ if there exists an $\epsilon > 0$ such that the property holds for all $x\in (x_0-\epsilon;x_0+\epsilon)\setminus\{x_0\}$.
+
+
+\section{Proof of Sturm's theorem}
+
+\subsection{Definitions}
+
+First, we define three notions that will be important in the proof of Sturm's theorem:
+
+A \emph{quasi-Sturm sequence} is a list of polynomials $P_0,P_1,\ldots,P_{n-1} \in \RR[X]$ that fulfils the following properties:
+\begin{itemize}
+\item $n \geq 1$, i.e. the sequence is not empty
+\item $P_n$ does not change its sign, i.e. $\sgn(P_n(x))=\sgn(P_n(y))$ for all $x,y\in\RR$
+\item for any $i\in\{0,\ldots,n-1\}$ and any root $x_0$ of $P_{i+1}$, $P_{i}(x_0)P_{i+2}(x_0) < 0$ holds
+\end{itemize}
+It can easily be seen that any nonempty sequence obtained by dropping a number of elements from the beginning of a quasi-Sturm sequence is again a quasi-Sturm sequence.\\
+
+A \emph{Sturm sequence} is a quasi-Sturm sequence that fulfils the following additional properties:
+\begin{itemize}
+\item $n \geq 2$, i.e. the sequence contains at least two polynomials
+\item for any root $x_0$ of $P_0$, $P_0(x)P_1(x)$ is negative in some sufficiently small interval $(x_0-\epsilon;x_0)$ and positive in some sufficiently small interval $(x_0;x_0+\epsilon)$\footnote{
+In \isabellehol, this is expressed as \enquote{eventually, the property $\sgn(P_0P_1(x))\ =\ \mathsf{if}\ x>x_0\ \mathsf{then}\ 1\ \mathsf{else}\ -1$ holds at $x_0$}.}
+\item $P_0$ and $P_1$ have no common roots.
+\end{itemize}
+
+In Isabelle, these three concepts are captured in \emph{locales} of the same name.
+\vskip5mm
+
+Next, we define the notion of \emph{sign changes}. Let $P_0,\ldots,P_{n-1}\in\RR[X]$ be a sequence of polynomials and $x\in\RR$. By evaluating the $P_i$ at $x$, we obtain a sequence of real numbers $y_0,\ldots,y_{n-1}$. We now traverse this sequence from left to right and count how often the sign changes, \ie how often we see a positive number and the last nonzero number in the sequence was negative (or vice versa). This is called the number of \emph{sign changes} of the sequence $P_0,\ldots,P_{n-1}$ at the position $x$ and is denoted as $\sigma(P_0,\ldots,P_{n-1}; x)$.\\
+In Isabelle, this is realised by evaluating the $P_i$ at $x$, deleting all zeros from the list, applying the \emph{rem\_adj\_dups} operation on the list and taking the length of the remaining list minus one as the result. The \emph{rem\_adj\_dups} function simply deletes equal adjacent elements in the list, \eg it turns $[1,2,2,1,1,1]$ into $[1,2,1]$.
+
+A related notion are the sign changes \enquote{at infinity}. For this, we compute the sequences
+$$\left(\sgn\left(\lim\limits_{x\to -\infty} P_i(x)\right)\right)_{0\leq i < n}\hskip6mm\textit{and}\hskip10mm
+\left(\sgn\left(\lim\limits_{x\to \infty} P_i(x)\right)\right)_{0\leq i < n}$$
+and count the sign changes in these sequences in the same way as before. The number of sign changes is called $\sigma_{-\infty}(P_0,\ldots,P_{n-1})$ and $\sigma_{\infty}(P_0,\ldots,P_{n-1})$, respectively. Note that the signs of these limits for a $P_i$ can be determined by taking the sign of the leading coefficient of $P_i$.
+
+\subsection{Important auxiliary lemmas}
+
+Since Sturm's theorem is based on counting sign changes, a crucial part in proving it is to formalise the counting of sign changes in a way that is convenient for subsequent proofs. In this proof, this was done by proving that under certain conditions, the computation of the number of sign changes of a sequence can be \enquote{decomposed}.
+
+\begin{lemma}\label{thm:limits}
+Let $P\in\RR[X]\setminus\{0\}$. Then there exist $l,u\in\RR$ such that $l<u$, all roots of $P$ are in $(l;u)$ and
+\begin{align*}
+&\forall x\leq l.\ \sgn(P(x)) = \sgn\left(\lim\limits_{x\to -\infty} P(x)\right)\\
+&\forall x\geq u.\ \sgn(P(x)) = \sgn\left(\lim\limits_{x\to \infty} P(x)\right)
+\end{align*}
+\end{lemma}
+\begin{proof}
+Obviously, the limit of $P(x)$ at $-\infty$ (resp. $\infty$) is either $\infty$ or $-\infty$. Therefore, there exists an $l$ (resp. a $u$) such that for all $x\leq l$ (resp. $x\geq u$), $P(x)$ increases above every bound in the case of the limit $\infty$ or falls below every bound in case of the limit $-\infty$. In particular, if we choose 0 as the bound, we see that $P(x)$ will be positive for all values beyond some point in the case of $\infty$ or negative in the case of $-\infty$, which implies $\sgn(P(x)) = \sgn(\lim_{x\to -\infty} P(x))$ (resp. $\sgn(P(x)) = \sgn(\lim_{x\to \infty} P(x))$) for all $x$ beyond that point. Therefore, bounds $l$ and $u$ that fulfil the last two requirements exist.\\
+Also, since the $P(x)$ is positive or negative for all $x$ below $l$ (resp. above $u$), it has no roots outside the interval $(l;u)$. Lastly, should $l<u$ not hold already, we can simply increase $u$ until it does.
+\end{proof}
+
+\begin{lemma}\label{thm:sign_changes_distrib}
+Let $P_0, \ldots, P_{n-1}$ be a sequence of polynomials and $i\in\{0,\ldots,n-1\}$. Furthermore, assume $P_i(x) \neq 0$. Then $\sigma(P_0,\ldots,P_{n-1}; x) = \sigma(P_0,\ldots,P_i; x)+\sigma(P_i,\ldots,P_{n-1}; x)$
+\end{lemma}
+\begin{proof}
+According to the informal definition of sign changes, this is obvious; for the Isabelle definition using list operation, it can be proven using simple properties of the \emph{rem\_adj\_dups} and \emph{filter} functions.
+\end{proof}
+
+\begin{lemma}\label{thm:sign_changes_triple}
+Assume $P(x)\neq 0$ and $\sgn(R(x)) = -\sgn(P(x))$. Then $\sigma(P,R,Q; x) = 1$
+\end{lemma}
+\begin{proof}
+By case distinction
+\end{proof}
+
+\begin{lemma}\label{thm:same_signs}
+Let $P_0,\ldots,P_{n-1}\in\RR[X]$, $Q_0\ldots,Q_{n-1}\in\RR[X]$ be two sequences of polynomials. Assume $\mathit{sgn}(P_i(x_1))=\mathit{sgn}(Q_i(x_2))$ for all $i$. Then $\sigma(P_0,\ldots,P_{n-1};x_1)=\sigma(Q_0,\ldots,Q_{n-1};x_2)$.
+\end{lemma}
+\begin{proof}
+Trivial.
+\end{proof}
+
+%\begin{lemma}
+%Let $P_0,\ldots,P_{n-1}\in\RR[X]$ be a quasi-Sturm sequence of length $\geq 3$. Then no two adjacent polynomials $P_i, P_{i+1}$ have a common root.
+%\end{lemma}
+%\begin{proof}
+%Suppose $P_i$ and $P_{i+1}$ had a common root $x$. Since $n \geq 3$, at least one of $P_{i-1}$ or $P_{i+2}$ exists, and with the definition of a quasi-Sturm sequence and the fact that $P_{i-1}(x)=0$ and $P_i(x)=0$, we can conclude $0=P_{i-1}P_{i+1}<0$ resp. $0=P_iP_{i+2}<0$, which is obviously false.
+%\end{proof}
+
+\subsection{Sign changes of Sturm sequences}
+
+\begin{lemma}\label{thm:nonzero}
+Let $P_0,\ldots,P_{n-1}$ be a quasi-Sturm sequence. Assume $P_0(x_0)\neq 0$. Then $\sigma(P_0,\ldots,P_n; x_0)$ is constant in the neighbourhood of $x_0$.\\
+\end{lemma}
+\begin{proof}
+By induction over the length of the sequence
+\begin{itemize}
+\item if the sequence has length 1, the number of sign changes is, of course, $0$ at any position.
+\item if the sequence has length 2, we know that $P_1$ does not change its sign anywhere by definition of a quasi-Sturm chain. Furthermore, since $P_0(x_0)\neq 0$, the sign of $P_0$ does not change in the neighbourhood of $x_0$. By Lemma \ref{thm:same_signs}, the number of sign changes of the sequence $P_0,P_1$ also remains constant in the neighbourhood of $x_0$.
+\item if the sequence has length $\geq 3$ and $P_1(x_0)\neq 0$, we have $\sigma(P_0,\ldots,P_{n-1}; x_0)=\sigma(P_0,P_1;x_0)+\sigma(P_1,\ldots,P_{n-1};x_0)$ from Lemma \ref{thm:sign_changes_distrib}. Since $P_0(x_0)\neq 0$ and $P_1(x_0)\neq 0$, the signs of $P_0$ and $P_1$ do not change in the neighbourhood of $x_0$ and therefore $\sigma(P_1,\ldots,P_{n-1};x_0)$ is constant in the neighbourhood of $x_0$. Also, the sequence $P_1,\ldots,P_{n-1}$ is again a quasi-Sturm sequence with $P_1(x_0)\neq 0$, \ie the induction hypothesis can be applied and we can conclude that $\sigma(P_1,\ldots,P_{n-1};x_0)$ is also constant in the neighbourhood of $x_0$.
+\item if the sequence has length $\geq 3$ and $P_1(x_0)=0$, we have $P_0(x_0)P_2(x_0)<0$ by the definition of a quasi-Sturm chain and thus $P_0(x_0)\neq 0$, $P_2(x_0)\neq 0$, and $\mathit{sgn}(P_2(x_0))=-\mathit{sgn}(P_0(x_0))$. With Lemma \ref{thm:sign_changes_distrib}, we have $\sigma(P_0,\ldots,P_{n-1}; x_0) = \sigma(P_0,P_1,P_2;x_0) + \sigma(P_2,\ldots,P_{n-1}; x_0)$. Furthermore, since $P_0(x_0)\neq 0$ and $P_2(x_0)\neq 0$, $\sgn(P_2(x))=-\sgn(P_0(x))$ holds in the entire neighbourhood of $x_0$ as the signs of $P_0$ and $P_2$ do not change in the neighbourhood of $x_0$, and with Lemma \ref{thm:sign_changes_triple}, we then have $\sigma(P_0,P_1,P_2;x)=2$ in the entire neighbourhood of $x_0$. As for the second summand, we know that $P_2,\ldots,P_{n-1}$ is again a quasi-Sturm sequence and $P_2(x_0)\neq 0$, so we can apply the induction hypothesis and obtain that $\sigma(P_2,\ldots,P_{n-1};x_0)$, too, is constant in the neighbourhood of $x_0$.
+\end{itemize}
+\end{proof}
+
+\label{thm:zero}
+\begin{lemma}
+Let $P_0,\ldots,P_{n-1}$ be a Sturm sequence. Assume $P_0(x_0)=0$. Then for $x$ in the neighbourhood of $x_0$, we have $\sigma(P_0,\ldots,P_{n-1};x)=\sigma(P_0,\ldots,P_{n-1};x_0)+1$ if $x<x_0$ and $\sigma(P_0,\ldots,P_{n-1};x)=\sigma(P_0,\ldots,P_{n-1};x_0)$ if $x\geq x_0$.\\
+\end{lemma}
+\begin{proof}
+From the definition of a Sturm chain, we know that $P_0(x_0)=0$ implies $P_1(x_0)\neq 0$ and that in the neighbourhood of $x_0$, we have $P_0(x)P_1(x)<0$ if $x<x_0$ and $P_0(x)P_1(x)>0$ if $x>x_0$. Therefore, in the neighbourhood of $x_0$, we have $P_1(x)\neq 0$ and, with Lemma \ref{thm:nonzero}, $\sigma(P_1,\ldots,P_{n-1};x) = \sigma(P_1,\ldots,P_{n-1};x_0)$.\\
+Fix some $x$ in that neighbourhood of $x_0$. By Lemma \ref{thm:sign_changes_distrib}, we then have $\sigma(P_0,\ldots,P_{n-1};x)=\sigma(P_0,P_1;x)+\sigma(P_1,\ldots,P_{n-1};x)=\sigma(P_0,P_1;x)+\sigma(P_1,\ldots,P_{n-1};x_0)$. What remains to be shown is that $\sigma(P_0,P_1;x)=1$ for $x<x_0$ and $\sigma(P_0,P_1;x)=0$ for $x>x_0$. This is a simple consequence of $P_0(x)P_1(x)<0$ for $x<0$ and $P_0(x)P_1(x)>0$ for $x>0$.
+\end{proof}
+
+\label{thm:count_roots_between}
+\begin{lemma}
+Let $P_0,\ldots,P_{n-1}$ be a Sturm sequence with $P_0\neq 0$. Fix $a,b\in\RR$ with $a \leq b$. Then $\sigma(P_0,\ldots,P_{n-1}; a)-\sigma(P_0,\ldots,P_{n-1}; b) = |\{x\in (a;b]\ |\ P_0(x)=0\}|$\\
+\end{lemma}
+\begin{proof}
+By induction over $|\{x\in (a;b].\ P_0(x)=0\}|$ for arbitrary $a, b$.
+\begin{itemize}
+\item if $|\{x\in (a;b].\ P_0(x)=0\}|=0$, we have $P_0(x)\neq 0$ for all $x\in (a;b]$. We now distinguish two cases:
+\begin{itemize}
+\item if $P_0(a)\neq 0$, we have $P_0(x)\neq 0$ for all $x\in[a;b]$. Lemma \ref{thm:nonzero} then implies that $\sigma(P_0,\ldots,P_{n-1})$ is constant in the neighbourhood of all $x\in[a;b]$ and must therefore be constant in the entire interval $[a;b]$.
+\item if $P_0(a)=0$, we know from Lemma \ref{thm:zero} that $\sigma(P_0,\ldots,P_{n-1}; x)=\sigma(P_0,\ldots,P_{n-1}; a)$ for all $x\in(a;a+\epsilon)$ for some $\epsilon > 0$, \ie $\sigma(P_0,\ldots,P_{n-1})$ is constant in the right neighbourhood of $a$. Furthermore, using $P_0(x)\neq 0$ for all $x\in(a;b]$ and Lemma \ref{thm:nonzero}, that $\sigma(P_0,\ldots,P_{n-1})$ is constant in the neighbourhood of every $x\in(a;b]$. Therefore, $\sigma(P_0,\ldots,P_{n-1})$ is constant on the entire interval $[a;b]$.
+\end{itemize}
+Since $\sigma(P_0,\ldots,P_{n-1})$ is constant on the entire interval $[a;b]$, we have $\sigma(P_0,\ldots,P_{n-1}; a)-\sigma(P_0,\ldots,P_{n-1}; b) = 0$, which is exactly the number of roots of $P_0$ in $(a;b]$.
+
+\item if $|\{x\in (a;b].\ P_0(x)=0\}|=n>0$, we take the smallest root of $P_0$ in the interval $(a;b]$ and call it $x_2$. With Lemma \ref{thm:zero}, we know that $\sigma(P_0,\ldots,P_{n-1};x) = \sigma(P_0,\ldots,P_{n-1};x_2)+1$ for all $x$ in a sufficiently small left neighbourhood of $x_2$. Let $x_1$ then be some value in $(a;x_2)$ that is in this neighbourhood. We know that $P_0$ has no roots in the interval $(a;x_2]$ and thus, by induction hypothesis, $\sigma(P_0,\ldots,P_{n-1};a)=\sigma(P_0,\ldots,P_{n-1};x_1)=\sigma(P_0,\ldots,P_{n-1};x_2)+1$. Furthermore, the number of roots of $P_0$ in the interval $(x_2;b]$ is exactly $n-1$, so by induction hypothesis, $\sigma(P_0,\ldots,P_{n-1};x_2)-\sigma(P_0,\ldots,P_{n-1};b) = n-1$. Adding these two equations yields $\sigma(P_0,\ldots,P_{n-1};a)-\sigma(P_0,\ldots,P_{n-1};b) = n$.
+\end{itemize}
+\end{proof}
+
+
+
+\begin{lemma}\label{thm:count_roots}
+Let $P_0,\ldots,P_{n-1}$ be a Sturm sequence with $P_0\neq 0$. Then $\sigma_{-\infty}(P_0,\ldots,P_{n-1})-\sigma_\infty(P_0,\ldots,P_{n-1}) = |\{x\ |\ P_0(x)=0\}|$
+\end{lemma}
+\begin{proof}
+Using Lemma \ref{thm:limits} for every $P_i$, we obtain $l,u\in\RR$ with $l<u$ such that $P_0$ has no roots outside the interval $(l;u)$ and for all $P_i$, $\sgn(P_i(l))=\sgn(\lim_{x\to -\infty} P_i(x))$ and $\sgn(P_i(u))=\sgn(\lim_{x\to \infty} P_i(x))$. It is then easy to see that the number of sign changes of the sequence $P_0,\ldots,P_{n-1}$ can be determined by considering the signs of the limits of the $P_i$ at $\pm\infty$ instead of $P_i(u)$ and $P_i(l)$. Since all roots of $P_0$ lie in the interval $(l;u)$, we have thus shown that the total number of roots of $P_0$ can be determined in the way described above.
+\end{proof}
+
+Note: similar statements for the usage of $\sigma_{-\infty}$ and $\sigma_\infty$ to compute the number of roots $>a$ or $\leq a$ for some fixed $a\in\RR$ can be proven analogously.
+
+\section{Constructing Sturm chains}
+
+\subsection{The canonical Sturm chain}
+
+The canonical Sturm chain $P_0,\ldots,P_{n-1}$ of a polynomial $P\in\RR[X]$ is constructed as follows:
+\begin{align*}
+&&\mathit{where}\quad &P_i = \begin{cases}
+\hskip3mm P & \mathit{for}\ i = 0\\
+\hskip3mm P' & \mathit{for}\ i = 1\\
+-P_{i-2}\ \mathit{mod}\ P_{i-1} &\mathit{otherwise}
+\end{cases}&\\[2mm]
+\end{align*}
+
+$n$ is chosen such that the $n\geq 2$ and $P_{n-1}$ is constant. The details of this are not important, since choosing a higher value for $n$ only results in a number of zero polynomials at the end of the sequence, which do not change the result in any way. Note that this construction always terminates as the degree of the polynomials involved strictly decreases with every step, so that one reaches a constant polynomial in finitely many steps.\\
+
+\begin{lemma}\label{thm:sturm_gcd}
+For all $i\in\{0,n-1\}$, we have $\gcd(P_i, P_{i+1}) = \gcd(P,P')$\\
+\end{lemma}
+\begin{proof}
+By induction on $i$ using the fact that $\gcd(R,S)=\gcd(S,R\mod S)=\gcd(S,-R\mod S)$.
+\end{proof}
+
+\begin{lemma}\label{thm:sturm_seq_canonical}
+Let $P\in\RR[X]$ with no multiple roots. Then the canonical Sturm chain construction of $P$ yields an actual Sturm chain.
+\end{lemma}
+\begin{proof}
+We simply prove the five conditions a Sturm chain has to satisfy:
+\begin{itemize}
+\item the sequence has at least length 2: obvious by definition
+\item $P_{n-1}$ does not change its sign: obvious, since $P_{n-1}$ is constant
+\item for any $i\in\{0,\ldots,n-1\}$ and any root $x_0$ of $P_{i+1}$, $P_{i}(x_0)P_{i+2}(x_0) < 0$ holds:\\
+By construction, we have $P_{i+2} = -P_{i}\ \textit{mod}\ P_{i+1}$. With $P_{i+1}(x_0)=0$, this implies that $P_{i+2}(x) = -P_i(x)$, and because of Lemma \ref{thm:sturm_gcd} and the fact that $P$ has no multiple roots, we also have $P_i(x)\neq 0$ and thus $P_i(x)P_{i+2}(x)<0$.
+\item for any root $x_0$ of $P_0$, $P_0(x)P_1(x)$ is negative in some sufficiently small interval $(x_0-\epsilon;x_0)$ and positive in some sufficiently small interval $(x_0;x_0+\epsilon)$:\\
+since $P_0=P$ and $P_1=P'$ are polynomials, there exists some neighbourhood of $x_0$ that does not contain any roots of either $P_0$ or $P_1$. For any $x<x_0$ in that neighbourhood, we can then apply the mean value theorem to obtain some $\xi\in[x;x_0]$ with $P(x)-P(x_0) = P'(\xi)(x-x_0)$, and since $P(x_0)=0$ and $x-x_0<0$, $P(x)=P'(\xi)$. Furthermore, $P(x)\neq 0$ and $P'(\xi)$ has the same sign as $P'(x)$, since we chose a neighbourhood without roots; therefore we have $P(x)P'(x)<0$. For any $x>x_0$, we can use the same argument to find that $P(x)P'(x)>0$.
+\item $P_0$ and $P_1$ have no common roots:\\
+$P_0=P$ and $P_1=P'$, so if $P_0$ and $P_1$ had a common root, it would be a multiple root of $P$, which contradicts our assumption.
+\end{itemize}
+\end{proof}
+%First of all, it can easily be seen that some $x_0\in\RR$ is a multiple root of $P$ iff it is a root of both $P$ and $P'$ and thus a root of $\gcd(P,P')$:
+%\begin{itemize}
+%\item if $x_0$ is a root of $P$ with order $k\geq 2$, we can write $P$ as $(x-x_0)^kQ$ for some $Q\in\RR[X]$, and thus $P'=((x-x_0)^kQ)' = (x-x_0)^{k-1}Q + (x-x_0)^kQ' = (x-x_0)^{k-1}(Q + (x-x_0)Q')$, \ie $x_0$ is also a root of order $k-1\geq 1$ of $P'$. Consequently, $x-x_0$ divides both $P$ and $P'$ and thus also $\gcd(P,P')$, so that $x_0$ is a root of $\gcd(P,P')$.
+%\item if $x_0$ is a root of $\gcd(P,P')$, $x-x_0$ divides $\gcd(P,P')$ and thus divides $P$ and $P'$. Therefore, $x_0$ is a root of both $P$ and $P'$. We can then write $P$ as $(x-x_0)Q$ for some $Q\in\RR[X]$ and then have $P'=((x-x_0)Q)'= Q + (x-x_0)Q'$, and since $x-x_0$ divides $P'=Q+(x-x_0)Q'$, it must also divide $Q$, which implies that $x_0$ is a root of $P$ of at least order 2.
+%\end{itemize}
+
+
+
+\subsection{The case of multiple roots}
+
+Of course, one way to handle a polynomial with multiple roots is to \enquote{divide away} the \enquote{excess roots} by dividing the polynomial $P$ by $\gcd(P,P')$. However, surprisingly, it turns out that as long as the interval bounds $a$ and $b$ are not multiple roots of $P$ themselves, i.e. at least one of $P(a)\neq 0$ and $P'(a)\neq 0$ and at least one of $P(b)\neq 0$ and $P'(b)\neq 0$ holds, one can simply use the canonical Sturm chain without any modification. To prove this, we will first prove the following auxiliary result:
+
+%Lemma: Let $P\in\RR[X]\setminus\{0\}$. Let $P_0,\ldots,P_{n-1}$ be the result of the canonical Sturm chain construction of $P$ and define $Q_i := P_i / \gcd(P,P')$. Then $Q_0,\ldots,Q_{n-1}$ is a Sturm chain and $Q_0$ has the same roots, disregarding multiplicity, as $P_0$.\\
+%Proof:
+%\begin{itemize}
+%\item since $Q_0,\ldots,Q_{n-1}$ has the same length as $P_0,\ldots,P_{n-1}$, which is the result of the canonical Sturm chain construction, the length of $Q_0,\ldots,Q_{n-1}$ is $\geq 2$.
+
+%\end{itemize}
+
+\end{document}
+
