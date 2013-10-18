@@ -1,0 +1,23 @@
+theory Scratch
+imports Main Real "~~/src/HOL/Library/Polynomial"
+begin
+
+lemma floor_int: "x \<in> \<int> \<Longrightarrow> real (floor x) = x"
+proof-
+  assume "x \<in> \<int>" then obtain x' :: int where "x = real x'" 
+      using Ints_cases unfolding real_of_int_def by blast
+  thus ?thesis by simp
+qed
+
+lemma
+  fixes p :: "real poly" and c :: int and d :: int
+  assumes d_nonzero: "d \<noteq> 0"
+  assumes int_coeffs: "\<And>n. coeff p n \<in> \<int>"
+  assumes zero: "poly p (c/d) = 0"
+  defines "n \<equiv> degree p"
+  defines "a\<^sub>0 \<equiv> \<lfloor>coeff p 0\<rfloor>" and "a\<^sub>n \<equiv> \<lfloor>coeff p n\<rfloor>"
+  shows "c dvd a\<^sub>0" and "d dvd a\<^sub>n"
+proof-
+  from int_coeffs have [simp]: "coeff p 0 = real a\<^sub>0" "coeff p n = real a\<^sub>n"
+      unfolding a\<^sub>0_def a\<^sub>n_def by (simp_all add: floor_int)
+  have "poly p (c/d) = \<Sum>"

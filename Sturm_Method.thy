@@ -581,7 +581,7 @@ by sturm
 schematic_lemma "card {x::real. x^3 + x = 2*x^2 \<or> x^3 - 6*x^2 + 11*x = 6} = ?n" by sturm
 
 
-schematic_lemma
+lemma
   "card {x::real. -0.010831 < x \<and> x < 0.010831 \<and> 
      poly [:0, -17/2097152, -49/16777216, 1/6, 1/24, 1/120:] x = 0} = 3"
   by sturm
