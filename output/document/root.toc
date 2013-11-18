@@ -1,0 +1,8 @@
+\contentsline {section}{\numberline {1}\emph {\sfcode 42 1000 \sfcode 63 1000 \sfcode 33 1000 \sfcode 58 1000 \sfcode 59 1000 \sfcode 44 1000 \it sign{\unhbox \voidb@x \hbox {-}}changes} function}{1}{section.1}
+\contentsline {section}{\numberline {2}Definition of Sturm sequences locale}{2}{section.2}
+\contentsline {section}{\numberline {3}Auxiliary lemmas about roots and sign changes}{3}{section.3}
+\contentsline {section}{\numberline {4}Canonical Sturm sequence}{15}{section.4}
+\contentsline {section}{\numberline {5}Canonical squarefree Sturm sequence}{21}{section.5}
+\contentsline {section}{\numberline {6}Optimisation for non-multiple roots}{22}{section.6}
+\contentsline {section}{\numberline {7}Root-counting functions}{28}{section.7}
+\contentsline {section}{\numberline {8}Setup for the sturm method}{34}{section.8}

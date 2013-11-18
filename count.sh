@@ -1,6 +1,6 @@
 #!/bin/bash
 n_sturm=`cat Sturm.thy Sturm_Library.thy | wc -l`
-n_method=`cat Sturm_Method.thy | wc -l`
+n_method=`cat Sturm_Method.thy *.ML | wc -l`
 n_analysis=`cat *Analysis*.thy | wc -l`
 n_poly=`cat *Poly*.thy | wc -l`
 n_misc=`cat List_Group.thy Misc.thy | wc -l`

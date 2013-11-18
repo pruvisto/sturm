@@ -6,13 +6,13 @@ section {* @{term sign_changes} function *}
 
 definition sign_changes where
 "sign_changes ps (x::real) = 
-    length (group (filter (\<lambda>x. x \<noteq> 0) (map (\<lambda>p. sgn (poly p x)) ps))) - 1"
+    length (remdups_adj (filter (\<lambda>x. x \<noteq> 0) (map (\<lambda>p. sgn (poly p x)) ps))) - 1"
 
 lemma sign_changes_distrib:
   "poly p x \<noteq> 0 \<Longrightarrow> 
       sign_changes (ps\<^sub>1 @ [p] @ ps\<^sub>2) x = 
       sign_changes (ps\<^sub>1 @ [p]) x + sign_changes ([p] @ ps\<^sub>2) x"
-  by (simp add: sign_changes_def sgn_zero_iff, subst group_append, simp)
+  by (simp add: sign_changes_def sgn_zero_iff, subst remdups_adj_append, simp)
 
 lemma same_signs_imp_same_sign_changes:
   assumes "length ps = length ps'"
@@ -43,11 +43,11 @@ unfolding sign_changes_def by (insert assms, auto simp: sgn_real_def)
 
 definition sign_changes_inf where
 "sign_changes_inf ps = 
-    length (group (filter (\<lambda>x. x \<noteq> 0) (map poly_inf ps))) - 1"
+    length (remdups_adj (filter (\<lambda>x. x \<noteq> 0) (map poly_inf ps))) - 1"
 
 definition sign_changes_neg_inf where
 "sign_changes_neg_inf ps = 
-    length (group (filter (\<lambda>x. x \<noteq> 0) (map poly_neg_inf ps))) - 1"
+    length (remdups_adj (filter (\<lambda>x. x \<noteq> 0) (map poly_neg_inf ps))) - 1"
 
 
 
@@ -1260,8 +1260,8 @@ text {*
 
 lemma sign_changes_mult_aux:
   assumes "d \<noteq> (0::real)"
-  shows "length (group (filter (\<lambda>x. x \<noteq> 0) (map (op *d \<circ> f) xs))) =
-         length (group (filter (\<lambda>x. x \<noteq> 0) (map f xs)))"
+  shows "length (remdups_adj (filter (\<lambda>x. x \<noteq> 0) (map (op *d \<circ> f) xs))) =
+         length (remdups_adj (filter (\<lambda>x. x \<noteq> 0) (map f xs)))"
 proof-
   from assms have inj: "inj (op *d)" by (auto intro: injI)
   from assms have [simp]: "filter (\<lambda>x. (op* d \<circ> f) x \<noteq> 0) = filter (\<lambda>x. f x \<noteq> 0)"
@@ -1270,7 +1270,7 @@ proof-
   have "filter (\<lambda>x. x \<noteq> 0) (map (op* d \<circ> f) xs) = 
         map (op* d \<circ> f) (filter (\<lambda>x. (op* d \<circ> f) x \<noteq> 0) xs)" 
       by (simp add: filter_map o_def)
-  thus ?thesis using group_map_injective[OF inj] assms
+  thus ?thesis using remdups_adj_map_injective[OF inj] assms
       by (simp add: filter_map map_map[symmetric] del: map_map)
 qed
 
@@ -1313,8 +1313,8 @@ proof-
      hence "f (q div d) = inverse s * f q" 
          by (subst f[of q], simp_all add: s)
     } note f' = this
-    have "length (group [x\<leftarrow>map f (map (\<lambda>q. q div d) ps). x \<noteq> 0]) - 1 = 
-           length (group [x\<leftarrow>map (\<lambda>q. f (q div d)) ps . x \<noteq> 0]) - 1"
+    have "length (remdups_adj [x\<leftarrow>map f (map (\<lambda>q. q div d) ps). x \<noteq> 0]) - 1 = 
+           length (remdups_adj [x\<leftarrow>map (\<lambda>q. f (q div d)) ps . x \<noteq> 0]) - 1"
         by (simp only: sign_changes_def o_def map_map)
     also have "map (\<lambda>q. q div d) ps = ps'" 
         by (simp add: ps_def ps'_def sturm_squarefree'_def Let_def d_def)
@@ -1322,10 +1322,10 @@ proof-
                       map (\<lambda>x. (op*(inverse s) \<circ> f) x) ps" by (simp add: o_def)
     also note sign_changes_mult_aux[OF `inverse s \<noteq> 0`, of f ps]
     finally have 
-        "length (group [x\<leftarrow>map f ps' . x \<noteq> 0]) - 1 =
-         length (group [x\<leftarrow>map f ps . x \<noteq> 0]) - 1" by simp
+        "length (remdups_adj [x\<leftarrow>map f ps' . x \<noteq> 0]) - 1 =
+         length (remdups_adj [x\<leftarrow>map f ps . x \<noteq> 0]) - 1" by simp
   }
-  note length_group = this
+  note length_remdups_adj = this
 
   {
     fix x assume A: "poly p x \<noteq> 0 \<or> poly (pderiv p) x \<noteq> 0"
@@ -1334,16 +1334,16 @@ proof-
         by (auto simp add: sgn_zero_iff elim: dvdE) 
     thus "sign_changes ps' x = sign_changes ps x" using signs(1)
         unfolding sign_changes_def
-        by (intro length_group[of "\<lambda>q. sgn (poly q x)"], simp_all)
+        by (intro length_remdups_adj[of "\<lambda>q. sgn (poly q x)"], simp_all)
   }
 
   assume "p \<noteq> 0"
   hence "d \<noteq> 0" unfolding d_def by simp
   hence "s' \<noteq> 0" "s'' \<noteq> 0" unfolding s'_def s''_def by simp_all
-  from length_group[of poly_inf s', OF signs(2) `s' \<noteq> 0`]
+  from length_remdups_adj[of poly_inf s', OF signs(2) `s' \<noteq> 0`]
       show "sign_changes_inf ps' = sign_changes_inf ps"
       unfolding sign_changes_inf_def .
-  from length_group[of poly_neg_inf s'', OF signs(3) `s'' \<noteq> 0`]
+  from length_remdups_adj[of poly_neg_inf s'', OF signs(3) `s'' \<noteq> 0`]
       show "sign_changes_neg_inf ps' = sign_changes_neg_inf ps"
       unfolding sign_changes_neg_inf_def .
 qed
