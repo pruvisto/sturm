@@ -81,11 +81,11 @@ The \sturm\ method uses Sturm's theorem to determine the number of distinct real
 \subsection{Examples}
 The following examples should give a good overview of what the \sturm\ method can do:
 \begin{align*}
-&\lemma\ "\card\ \{x::\real. (x - 1)^2 * (x + 1) = 0\} = 2"\ \textrm{\textbf{by}\ sturm}\\
-&\textbf{lemma} "\mathrm{card}\ \{x::\mathrm{real}. -0.010831 < x\ \wedge\ x < 0.010831\ \wedge\\
+&\lemma\ "\card\ \{x::\real.\ (x - 1)^2 * (x + 1) = 0\} = 2"\ \textrm{\textbf{by}\ sturm}\\
+&\textbf{lemma} "\mathrm{card}\ \{x::\mathrm{real}.\ -0.010831 < x\ \wedge\ x < 0.010831\ \wedge\\
 &\hskip20mm \mathrm{poly}\ [:0, -17/2097152, -49/16777216, 1/6, 1/24, 1/120:]\ \ x\ =\ 0\} = 3"\ \textrm{\textbf{by}\ sturm}\\
-&\lemma\ "\card\ \{x::\real. x^3 + x = 2*x^2\ \wedge\ x^3-6*x^2+11*x=6\} = 1"\ \textrm{\textbf{by}\ sturm}\\
-&\lemma\ "\card\ \{x::\real. x^3 + x = 2*x^2\ \vee\ x^3-6*x^2+11*x=6\} = 4"\ \textrm{\textbf{by}\ sturm}\\
+&\lemma\ "\card\ \{x::\real.\ x^3 + x = 2*x^2\ \wedge\ x^3-6*x^2+11*x=6\} = 1"\ \textrm{\textbf{by}\ sturm}\\
+&\lemma\ "\card\ \{x::\real.\ x^3 + x = 2*x^2\ \vee\ x^3-6*x^2+11*x=6\} = 4"\ \textrm{\textbf{by}\ sturm}\\
 &\lemma\ "(x::\real)^2+1 > 0"\ \textrm{\textbf{by}\ sturm}\\
 &\lemma\ "(x::\real) > 0\ \Longrightarrow\ x^2+1 > 0"\ \textrm{\textbf{by}\ sturm}\\
 &\lemma\ "\llbracket (x::\real) > 0; x \leq 2/3\rrbracket\ \Longrightarrow\ x*x \neq\ x"\ \textrm{\textbf{by}\ sturm}\\
@@ -127,7 +127,7 @@ where $P\ x$ is a \enquote{negated polynomial expression}, which is defined as:
 \subsection{Simple ordered inequalities}
 For any polynomial $p\in\RR[X]$, the question whether $p(x) > 0$ for all $x\in I$ for a non-empty real interval $I$ can obviously be reduced to the question of whether $p(x) \neq 0$ for all $x\in I$, \ie $p$ has no roots in $I$, and $p(x) > 0$ for some arbitrary fixed $x\in I$, the first of which can be decided using Sturm's theorem and the second by choosing an arbitrary $x\in I$ and evaluating $p(x)$.\\
 
-Using this reduction, the \sturm\ method can also decide single \enquote{less than}/\enquote{ŋreater than} inequalities of the form 
+Using this reduction, the \sturm\ method can also decide single \enquote{less than}/\enquote{greater than} inequalities of the form 
 $$\forall x::\real.\ x > a\ \wedge\ x < b\ \longrightarrow\ p\ x < q\ x$$
 
 \subsection{A note on meta logic versus object logic}
