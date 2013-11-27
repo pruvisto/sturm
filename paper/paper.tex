@@ -72,13 +72,18 @@
 
 \begin{document}
 \maketitle
+
+\begin{abstract}
+Sturm sequences are a sequence of polynomials with certain properties that, as shown by Sturm's theorem, can be used to determine the number of roots of a real polynomial in a given interval. In this project, Sturm's theorem and a number of me\-thods to construct Sturm sequences have been formalised in Isabelle\slash HOL. Buil\-ding upon this, an Isabelle\slash HOL proof method was then implemented to prove statements about the number of roots of a real polynomial and related properties.
+\end{abstract}\vskip10mm
+
 \tableofcontents
 \newpage
 \parindent0mm
 
 \section{Outline}
 
-This paper will give a detailed proof that closely follows the structure of the formal proof in \isabellehol, but omits the proofs for basic lemmas about analysis and polynomials.\\
+This paper will give a detailed account of the formalisation, including a very explicit proof that closely follows the structure of the formal proof in \isabellehol, but omits the proofs for basic lemmas about analysis and polynomials.\\
 
 Section \ref{sec:notation} introduces some basic notation for well-known concepts that are not directly related to Sturm sequence. Section \ref{sec:defs} then defines a number of basic concepts that are used in Sturm's theorem, in particular, the concept of a \emph{Sturm sequence}. Section \ref{sec:aux_lemmas} contains some simple auxiliary lemmas that will be required in the main proof. Section \ref{sec:roots_sturm} contains the main portion of the proof, as it shows that Sturm sequences can be used to count the real roots of polynomials. Section \ref{sec:construction} then shows how Sturm sequences can be constructed in different cases and how these constructions can be applied. Finally, section \ref{sec:applications} explains how further preprocessing can be used to automatically decide complex, interesting properties on real polynomials.
 
@@ -88,7 +93,7 @@ In our the following proofs, we will use the following notation and terminology:
 \begin{itemize}
 \item $\RR[X]$ denotes the set of all polynomials with real coefficients.
 \item $P'$ denotes the derivative of a polynomial $P\in\RR[X]$.
-\item Some property holds in a neighbourhood of some $x_0\in\RR$ if there exists an $\epsilon > 0$ such that the property holds for all $x\in (x_0-\epsilon;x_0+\epsilon)\setminus\{x_0\}$. Note that it does not have to hold \emph{at} $x_0$ \emph{itself}.
+\item Some property holds in a neighbourhood of some $x_0\in\RR$ if there exists an $\epsilon > 0$ such that the property holds for all $x\in (x_0-\epsilon;x_0+\epsilon)\setminus\{x_0\}$. Note that it does \emph{not} have to hold \emph{at} $x_0$ \emph{itself}.
 \item $\mathrm{lc}(P)$ denotes the leading coefficient of a polynomial $P$.
 \end{itemize}
 
