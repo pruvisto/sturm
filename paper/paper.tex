@@ -1,7 +1,7 @@
 \documentclass[11pt,a4paper,oneside]{article}
 \usepackage[english]{babel}
 
-\usepackage[utf8x]{inputenc} 
+\usepackage[utf8]{inputenc} 
 \usepackage[T1]{fontenc}
 
 \usepackage{geometry} 
@@ -19,13 +19,11 @@
 \usepackage{enumerate}
 \usepackage{xspace}
 \usepackage{stmaryrd}
+\usepackage{hyperref}
+
+\usepackage[style=alphabetic]{biblatex}
 
 \usepackage{tgpagella}
-
-\DeclareFontFamily{OT1}{pzc}{}
-\DeclareFontShape{OT1}{pzc}{m}{it}{<-> s * [1.10] pzcmi7t}{}
-\DeclareMathAlphabet{\mathpzc}{OT1}{pzc}{m}{it}
-\DeclareUnicodeCharacter{10230}{$\rightarrow$}
 
 \newtheorem{definition}{Definition}
 \newtheorem{lemma}[definition]{Lemma}
@@ -66,6 +64,7 @@
 \newcommand{\isabellehol}{\mbox{Isabelle}\slash HOL\xspace}
 
 \geometry{a4paper,left=30mm,right=30mm, top=25mm, bottom=30mm} 
+\bibliography{sturm}
 
 \title{A Formalisation of Sturm's theorem in \isabellehol}
 \author{Manuel Eberl}
@@ -74,18 +73,22 @@
 \maketitle
 
 \begin{abstract}
-Sturm sequences are a sequence of polynomials with certain properties that, as shown by Sturm's theorem, can be used to determine the number of roots of a real polynomial in a given interval. In this project, Sturm's theorem and a number of me\-thods to construct Sturm sequences have been formalised in Isabelle\slash HOL. Buil\-ding upon this, an Isabelle\slash HOL proof method was then implemented to prove statements about the number of roots of a real polynomial and related properties.
+\emph{Sturm sequences} are a method of efficiently computing the number of real roots of a real polynomial inside a given interval. In this project, this fact and a number of me\-thods to construct Sturm sequences efficiently have been formalised with the interactive theorem prover Isabelle\slash HOL. Buil\-ding upon this, an Isabelle\slash HOL proof method was then implemented to prove statements about the number of roots of a real polynomial and related properties.
 \end{abstract}\vskip10mm
 
 \tableofcontents
 \newpage
 \parindent0mm
 
-\section{Outline}
+\section{Introduction}
+\emph{Sturm sequences} are finite sequences of polynomials with certain properties that, as shown by \emph{Sturm's Theorem}, can be used to determine the number of roots of a real polynomial in a given interval alorithmically. This is used to prove properties about the roots of specific polynomials directly, but can also be part of other algorithms such as approximation of roots through bisection, and it forms the basis of \textsc{Tarski}'s decision procedure for real arithmetic. Implementations of Sturm sequences for these purposes exist in a number of computer algebra systems, %TODO check this
+\\
 
-This paper will give a detailed account of the formalisation, including a very explicit proof that closely follows the structure of the formal proof in \isabellehol, but omits the proofs for basic lemmas about analysis and polynomials.\\
+There are different ways to construct Sturm sequences for a fixed polynomial $P$. The \enquote{canonical} Sturm sequence construction works only if $P$ has no multiple roots, but it can be adapter to the more general case of any nonzero polynomial.\\
 
-Section \ref{sec:notation} introduces some basic notation for well-known concepts that are not directly related to Sturm sequence. Section \ref{sec:defs} then defines a number of basic concepts that are used in Sturm's theorem, in particular, the concept of a \emph{Sturm sequence}. Section \ref{sec:aux_lemmas} contains some simple auxiliary lemmas that will be required in the main proof. Section \ref{sec:roots_sturm} contains the main portion of the proof, as it shows that Sturm sequences can be used to count the real roots of polynomials. Section \ref{sec:construction} then shows how Sturm sequences can be constructed in different cases and how these constructions can be applied. Finally, section \ref{sec:applications} explains how further preprocessing can be used to automatically decide complex, interesting properties on real polynomials.
+Both Sturm's Theorem and these constructions were formally proven in \isabellehol in this project. This paper will give a detailed account of the formalisation, including a very explicit proof that closely follows the structure of the formal proof in \isabellehol, but omits the proofs for basic lemmas about real analysis and polynomials.\\
+
+Section \ref{sec:notation} introduces some basic notation for well-known concepts that are not directly related to Sturm sequence. Section \ref{sec:defs} then defines a number of basic concepts that are used in Sturm's theorem, in particular, the concept of a \emph{Sturm sequence}. Section \ref{sec:aux_lemmas} contains some simple auxiliary lemmas that will be required in the main proof. Section \ref{sec:roots_sturm} contains the main portion of the proof, as it shows that Sturm sequences can be used to count the real roots of polynomials. Section \ref{sec:construction} then shows how Sturm sequences can be constructed in different cases and how these constructions can be applied. Finally, section \ref{sec:applications} explains how further preprocessing can be used to automatically decide more complex, interesting properties on real polynomials.
 
 \section{Notation}
 \label{sec:notation}
@@ -93,7 +96,7 @@ In our the following proofs, we will use the following notation and terminology:
 \begin{itemize}
 \item $\RR[X]$ denotes the set of all polynomials with real coefficients.
 \item $P'$ denotes the derivative of a polynomial $P\in\RR[X]$.
-\item Some property holds in a neighbourhood of some $x_0\in\RR$ if there exists an $\epsilon > 0$ such that the property holds for all $x\in (x_0-\epsilon;x_0+\epsilon)\setminus\{x_0\}$. Note that it does \emph{not} have to hold \emph{at} $x_0$ \emph{itself}.
+\item Some property holds \emph{in a neighbourhood} of some $x_0\in\RR$ if there exists an $\epsilon > 0$ such that the property holds for all $x\in (x_0-\epsilon;x_0+\epsilon)\setminus\{x_0\}$. Note that it does \emph{not} have to hold \emph{at} $x_0$ \emph{itself}.
 \item $\mathrm{lc}(P)$ denotes the leading coefficient of a polynomial $P$.
 \end{itemize}
 
@@ -104,17 +107,17 @@ In our the following proofs, we will use the following notation and terminology:
 \subsection{Definitions}
 \label{sec:defs}
 
-First, we define three notions that will be important in the proof of Sturm's theorem:
+First, we define two notions that will be important in the proof of Sturm's theorem:
 
-A \emph{quasi-Sturm sequence} is a list of polynomials $P_0,P_1,\ldots,P_{n-1} \in \RR[X]$ that fulfils the following properties:
+A \emph{quasi-Sturm sequence}\footnote{This term is, to our knowledge, not used in any of the literature. It was \enquote{invented} solely for the purpose of this formal proof, since we need to perform explicit induction on the sequence, which does not preserve the Sturm sequence property, but does preserve the weaker notion of quasi-Sturm sequence} is a list of polynomials $P_0,P_1,\ldots,P_{n-1} \in \RR[X]$ that fulfils the following properties:
 \begin{itemize}
 \item $n \geq 1$, i.e. the sequence is not empty
 \item $P_{n-1}$ does not change its sign, i.e. $\sgn(P_{n-1}(x))=\sgn(P_{n-1}(y))$ for all $x,y\in\RR$
-\item for any $i\in\{0,\ldots,n-1\}$ and any root $x_0$ of $P_{i+1}$, $P_{i}(x_0)P_{i+2}(x_0) < 0$ holds
+\item for any $i\in\{0,\ldots,n-3\}$ and any root $x_0$ of $P_{i+1}$, $P_{i}(x_0)P_{i+2}(x_0) < 0$ holds
 \end{itemize}
 It can easily be seen that any nonempty sequence obtained by dropping a number of elements from the beginning of a quasi-Sturm sequence is again a quasi-Sturm sequence.\\
 
-A \emph{Sturm sequence} is a quasi-Sturm sequence that fulfils the following additional properties:
+A \emph{Sturm sequence} is a quasi-Sturm sequence that fulfils the following additional properties:\footnote{This definition was adapted from \cite{sag} as it has the virtue of being very general, allowing us to easily generalise the canonical construction later.}
 \begin{itemize}
 \item $n \geq 2$, i.e. the sequence contains at least two polynomials
 \item for any root $x_0$ of $P_0$, $P_0(x)P_1(x)$ is negative in some sufficiently small interval\\ \mbox{$(x_0-\epsilon;x_0)$} and positive in some sufficiently small interval $(x_0;x_0+\epsilon)$\footnote{
@@ -136,7 +139,7 @@ and count the sign changes in these sequences in the same way as before. The num
 \subsection{Important auxiliary lemmas}
 \label{sec:aux_lemmas}
 
-Since Sturm's theorem is based on counting sign changes, a crucial part in proving it is to formalise the counting of sign changes in a way that is convenient for subsequent proofs. In this proof, this was done by proving that under certain conditions, the computation of the number of sign changes of a sequence can be \enquote{decomposed}.
+The first auxiliary lemma concerns the behaviour of polynomials at infinity and will be important for counting roots in intervals of infinite length.
 
 \begin{lemma}\label{thm:limits}
 Let $P\in\RR[X]\setminus\{0\}$. Then there exist $l,u\in\RR$ such that $l<u$, all roots of $P$ are in $(l;u)$ and
@@ -146,15 +149,17 @@ Let $P\in\RR[X]\setminus\{0\}$. Then there exist $l,u\in\RR$ such that $l<u$, al
 \end{align*}
 \end{lemma}
 \begin{proof}
-Obviously, the limit of $P(x)$ at $-\infty$ (resp. $\infty$) is either $\infty$ or $-\infty$. Therefore, there exists an $l$ (resp. a $u$) such that for all $x\leq l$ (resp. $x\geq u$), $P(x)$ increases above every bound in the case of the limit $\infty$ or falls below every bound in case of the limit $-\infty$. In particular, if we choose 0 as the bound, we see that $P(x)$ will be positive for all values beyond some point in the case of $\infty$ or negative in the case of $-\infty$, which implies $\sgn(P(x)) = \sgn(\lim_{x\to -\infty} P(x))$ (resp. $\sgn(P(x)) = \sgn(\lim_{x\to \infty} P(x))$) for all $x$ beyond that point. Therefore, bounds $l$ and $u$ that fulfil the last two requirements exist.\\
+Obviously, the limit of $P(x)$ at $-\infty$ (resp. $\infty$) is either $\infty$ or $-\infty$. Therefore, there exists an $l$ (resp. a $u$) such that for all $x\leq l$ (resp. $x\geq u$), $P(x)$ increases above \mbox{every} bound in the case of the limit $\infty$ or falls below every bound in case of the limit $-\infty$. In particular, if we choose 0 as the bound, we see that $P(x)$ will be positive for all \mbox{values} beyond some point in the case of $\infty$ or negative in the case of $-\infty$, which implies $\sgn(P(x)) = \sgn(\lim_{x\to -\infty} P(x))$ (resp. $\sgn(P(x)) = \sgn(\lim_{x\to \infty} P(x))$) for all $x$ beyond that point. Therefore, bounds $l$ and $u$ that fulfil the last two requirements exist.\\
 Also, since the $P(x)$ is positive or negative for all $x$ below $l$ (resp. above $u$), it has no roots outside the interval $(l;u)$. Lastly, should $l<u$ not hold already, we can simply increase $u$ until it does.
 \end{proof}\vskip3mm
+
+Since Sturm's theorem is based on counting sign changes, a crucial part in proving it is to formalise the counting of sign changes in a way that is convenient for subsequent proofs. In this proof, this was done by proving that under certain conditions, the computation of the number of sign changes of a sequence can be \enquote{decomposed}.
 
 \begin{lemma}\label{thm:sign_changes_distrib}
 Let $P_0, \ldots, P_{n-1}$ be a sequence of polynomials and $i\in\{0,\ldots,n-1\}$ and $x\in\RR$. Furthermore, assume $P_i(x) \neq 0$. Then $\sigma(P_0,\ldots,P_{n-1}; x) = \sigma(P_0,\ldots,P_i; x)+\sigma(P_i,\ldots,P_{n-1}; x)$
 \end{lemma}
 \begin{proof}
-According to the informal definition of sign changes, this is obvious; for the Isabelle definition using list operation, it can be proven using simple properties of the \emph{remdups\_adj} and \emph{filter} functions.
+For our informal definition of sign changes, this is obvious; for the Isabelle definition using list operation, it can be proven using simple properties of the \emph{remdups\_adj} and \emph{filter} functions.
 \end{proof}\vskip3mm
 
 \begin{lemma}\label{thm:sign_changes_triple}
@@ -171,11 +176,11 @@ Let $P_0,\ldots,P_{n-1}\in\RR[X]$, $Q_0\ldots,Q_{n-1}\in\RR[X]$ be two sequences
 Trivial.
 \end{proof}\vskip3mm
 
-Later, we will also require some algebraic properties of polynomials, such as squarefree decomposition of polynomials:
+Later, we will also require some algebraic properties of polynomials, such as squarefree decomposition of polynomials. 
 \begin{lemma}\label{thm:squarefree}
 Let $P \in \RR[X]\setminus \RR$, i.e. a nonconstant real polynomial. Let $D:=\gcd(P,P')$. Then the following holds:
 \begin{enumerate}
-\item $\gcd(P/D, P'/D) = 1$
+\item $\gcd(P/D, P'/D) = 1$, \ie $P/D$ and $P'/D$ are coprime
 \item $\forall x\in\RR.\ (P/D)(x)=0 \Longleftrightarrow P(x)=0$, \ie $P$ and $P/D$ have the same roots, disregarding multiplicity
 \end{enumerate}
 \end{lemma}\vskip3mm
@@ -219,10 +224,10 @@ Of course, since $P_0(x_0)=0$, we also have:
 $$\sigma(P_1,\ldots,P_{n-1};x_0) = \sigma(P_0,\ldots,P_{n-1};x_0)\hskip31mm$$
 In summary, we have shown so far that:
 $$\sigma(P_0,\ldots,P_{n-1};x)=\sigma(P_0,P_1;x) + \sigma(P_0,\ldots,P_{n-1};x_0) \hskip10mm\mathrm{in\ a\ NH\ of\ }x_0$$
-Therefore, what remains to be shown is that $\sigma(P_0,P_1;x)=1$ for $x<x_0$ and $\sigma(P_0,P_1;x)=0$ for $x>x_0$ for all $x$ in a neighbourhood of $x_0$. This is a simple of $P_0(x)P_1(x)<0$ for $x<0$ and $P_0(x)P_1(x)>0$ for $x>0$ and the fact that $P_1$ has the same sign in the entire neighbourhood of $x_0$.
+Therefore, what remains to be shown is that $\sigma(P_0,P_1;x)=1$ for $x<x_0$ and $\sigma(P_0,P_1;x)=0$ for $x>x_0$ for all $x$ in a neighbourhood of $x_0$. This is a simple consequence of $P_0(x)P_1(x)<0$ for $x<0$ and $P_0(x)P_1(x)>0$ for $x>0$ and the fact that $P_1$ has the same sign in the entire neighbourhood of $x_0$.
 \end{proof}\vskip5mm
 
-To express it in a less formal way: when passing through the real numbers in increasing order and tracking the number of sign changes of a Sturm seuqnece of a real polynomial $P$, that number increases by $1$ every time one passes a root of $P$ and remains constant otherwise. Intuitively, it should now be clear that Sturm sequences can be used to count the number of roots of a polynomial in a given interval. We will now prove this formally.
+To express it in a less formal way: when passing through the real numbers in increasing order and tracking the number of sign changes of a Sturm sequence of a real polynomial $P$, that number increases by $1$ every time one passes a root of $P$ and remains constant otherwise. Intuitively, it should now be clear that Sturm sequences can be used to count the number of roots of a polynomial in a given interval. We will now prove this formally.
 
 
 \label{thm:count_roots_between}
@@ -231,16 +236,16 @@ Let $P_0,\ldots,P_{n-1}$ be a Sturm sequence with $P_0\neq 0$ and $x_0\in\RR$. F
 $$\sigma(P_0,\ldots,P_{n-1}; a)-\sigma(P_0,\ldots,P_{n-1}; b) = |\{x\in (a;b]\ |\ P_0(x)=0\}|$$
 \end{lemma}
 \begin{proof}
-By induction over $|\{x\in (a;b].\ P_0(x)=0\}|$ for arbitrary $a, b$.
+By induction over $k:=|\{x\in (a;b].\ P_0(x)=0\}|$ for arbitrary $a, b$.
 \begin{itemize}
-\item if $|\{x\in (a;b].\ P_0(x)=0\}|=0$, we have $P_0(x)\neq 0$ for all $x\in (a;b]$. We now distinguish two cases:
+\item if $k=0\}|=0$, we have $P_0(x)\neq 0$ for all $x\in (a;b]$. We now distinguish two cases:
 \begin{itemize}
-\item if $P_0(a)\neq 0$, we have $P_0(x)\neq 0$ for all $x\in[a;b]$. Lemma \ref{thm:nonzero} then implies that $\sigma(P_0,\ldots,P_{n-1})$ is constant in the neighbourhood of all $x\in[a;b]$ and must therefore be constant in the entire interval $[a;b]$.
+\item if $P_0(a)\neq 0$, we have $P_0(x)\neq 0$ for all $x\in[a;b]$. Lemma \ref{thm:nonzero} then implies that $\sigma(P_0,\ldots,P_{n-1})$ is constant in the neighbourhood of all $x\in[a;b]$ and must therefore be constant in the entire interval $[a;b]$ as polynomials are continuous.
 \item if $P_0(a)=0$, we know from Lemma \ref{thm:zero} that $$\sigma(P_0,\ldots,P_{n-1}; x)=\sigma(P_0,\ldots,P_{n-1}; a)$$ for all $x\in(a;a+\epsilon)$ for some $\epsilon > 0$, \ie $\sigma(P_0,\ldots,P_{n-1})$ is constant in the right neighbourhood of $a$. Furthermore, using $P_0(x)\neq 0$ for all $x\in(a;b]$ and Lemma \ref{thm:nonzero}, that $\sigma(P_0,\ldots,P_{n-1})$ is constant in the neighbourhood of every $x\in(a;b]$. Therefore, $\sigma(P_0,\ldots,P_{n-1})$ is constant on the entire interval $[a;b]$.
 \end{itemize}
 Since $\sigma(P_0,\ldots,P_{n-1})$ is constant on the entire interval $[a;b]$, we have $$\sigma(P_0,\ldots,P_{n-1}; a)-\sigma(P_0,\ldots,P_{n-1}; b) = 0$$ which is exactly the number of roots of $P_0$ in $(a;b]$.
 
-\item if $|\{x\in (a;b].\ P_0(x)=0\}|=n>0$, we take the smallest root of $P_0$ in the interval $(a;b]$ and call it $x_2$. With Lemma \ref{thm:zero}, we know that $\sigma(P_0,\ldots,P_{n-1};x) = \sigma(P_0,\ldots,P_{n-1};x_2)+1$ for all $x$ in a sufficiently small left neighbourhood of $x_2$. Let $x_1$ then be some value in $(a;x_2)$ that is in this neighbourhood. We know that $P_0$ has no roots in the interval $(a;x_2]$ and thus, by induction hypothesis, $\sigma(P_0,\ldots,P_{n-1};a)=\sigma(P_0,\ldots,P_{n-1};x_1)=\sigma(P_0,\ldots,P_{n-1};x_2)+1$. Furthermore, the number of roots of $P_0$ in the interval $(x_2;b]$ is exactly $n-1$, so by induction hypothesis, $\sigma(P_0,\ldots,P_{n-1};x_2)-\sigma(P_0,\ldots,P_{n-1};b) = n-1$. Adding these two equations yields $\sigma(P_0,\ldots,P_{n-1};a)-\sigma(P_0,\ldots,P_{n-1};b) = n$.
+\item if $k>0$, we take the smallest root of $P_0$ in the interval $(a;b]$ and call it $x_2$. With Lemma \ref{thm:zero}, we know that for all $x$ in a sufficiently small left neighbourhood of $x_2$: $$\sigma(P_0,\ldots,P_{n-1};x) = \sigma(P_0,\ldots,P_{n-1};x_2)+1$$  Let $x_1$ then be some value in $(a;x_2)$ that is in this neighbourhood. We know that $P_0$ has no roots in the interval $(a;x_2]$ and thus, by induction hypothesis, $$\sigma(P_0,\ldots,P_{n-1};a)=\sigma(P_0,\ldots,P_{n-1};x_1)=\sigma(P_0,\ldots,P_{n-1};x_2)+1$$ Furthermore, the number of roots of $P_0$ in the interval $(x_2;b]$ is exactly $k-1$, so by induction hypothesis, $$\sigma(P_0,\ldots,P_{n-1};x_2)-\sigma(P_0,\ldots,P_{n-1};b) = k-1$$ Adding these two equations yields $$\sigma(P_0,\ldots,P_{n-1};a)-\sigma(P_0,\ldots,P_{n-1};b) = k$$
 \end{itemize}
 \end{proof}
 
@@ -250,7 +255,7 @@ Since $\sigma(P_0,\ldots,P_{n-1})$ is constant on the entire interval $[a;b]$, w
 Let $P_0,\ldots,P_{n-1}$ be a Sturm sequence with $P_0\neq 0$. Then the following holds: $$\sigma(P_0,\ldots,P_{n-1}; -\infty)-\sigma(P_0,\ldots,P_{n-1}; \infty) = |\{x\ |\ P_0(x)=0\}|$$
 \end{lemma}
 \begin{proof}
-Using Lemma \ref{thm:limits} for every $P_i$, we obtain $l,u\in\RR$ with $l<u$ such that $P_0$ has no roots outside the interval $(l;u)$ and for all $P_i$, $\sgn(P_i(l))=\sgn(\lim_{x\to -\infty} P_i(x))$ and $\sgn(P_i(u))=\sgn(\lim_{x\to \infty} P_i(x))$. It is then easy to see that the number of sign changes of the sequence $P_0,\ldots,P_{n-1}$ can be determined by considering the signs of the limits of the $P_i$ at $\pm\infty$ instead of $P_i(u)$ and $P_i(l)$. Since all roots of $P_0$ lie in the interval $(l;u)$, we have thus shown that the total number of roots of $P_0$ can be determined in the way described above.
+Using Lemma \ref{thm:limits} for every $P_i$ and taking the smallest lower bound $l$ and largest upper bound $u$, we obtain $l,u\in\RR$ with $l<u$ such that $P_0$ has no roots outside the interval $(l;u)$ and for all $P_i$: $$\sgn(P_i(l))=\sgn\left(\lim_{x\to -\infty} P_i(x)\right)\hskip5mm\mathrm{and}\hskip5mm\sgn(P_i(u))=\sgn\left(\lim_{x\to \infty} P_i(x)\right)$$ It is then easy to see that the number of sign changes of the sequence $P_0,\ldots,P_{n-1}$ at $l$ resp. $u$ can be determined by considering the signs of the limits of the $P_i$ at $\pm\infty$ instead of $P_i(u)$ and $P_i(l)$. Since all roots of $P_0$ lie in the interval $(l;u)$, we have thus shown that the total number of roots of $P_0$ can be determined in the way described above.
 \end{proof}
 
 Note: similar statements for the usage of $\sigma$ at $\pm\infty$ to compute the number of roots $>a$, $<a$, $\geq a$, or $\leq a$ for some fixed $a\in\RR$ can be proven analogously.
@@ -262,7 +267,7 @@ Note: similar statements for the usage of $\sigma$ at $\pm\infty$ to compute the
 
 The canonical Sturm sequence $P_0,\ldots,P_{n-1}$ of a polynomial $P\in\RR[X]$ is constructed as follows:
 \begin{align*}
-&&\mathrm{where}\quad &P_i = \begin{cases}
+P_i = \begin{cases}
 \hskip3mm P & \mathrm{for}\ i = 0\\
 \hskip3mm P' & \mathrm{for}\ i = 1\\
 -P_{i-2}\ \mathrm{mod}\ P_{i-1} &\mathrm{otherwise}
@@ -272,7 +277,7 @@ The canonical Sturm sequence $P_0,\ldots,P_{n-1}$ of a polynomial $P\in\RR[X]$ i
 $n$ is chosen such that $n\geq 2$ and $P_{n-1}$ is constant, since this will simplify formalisation. Choosing a higher value for $n$ only results in a number of zero polynomials at the end of the sequence, which do not change the result in any way. Note that this construction always terminates as the degree of the polynomials involved strictly decreases with every step, so that one reaches a constant polynomial in finitely many steps.\\
 
 \begin{lemma}\label{thm:sturm_gcd}
-For all $i\in\{0,n-1\}$, we have $\gcd(P_i, P_{i+1}) = \gcd(P,P')$
+For all $i\in\{0,n-2\}$, we have $\gcd(P_i, P_{i+1}) = \gcd(P,P')$
 \end{lemma}
 \begin{proof}
 By induction on $i$ using the fact that $$\gcd(R,S)=\gcd(S,R\mod S)=\gcd(S,-R\mod S)$$\vskip-3mm
@@ -286,10 +291,13 @@ We simply prove the five conditions a Sturm sequence has to satisfy:
 \begin{itemize}
 \item the sequence has at least length 2: obvious by definition
 \item $P_{n-1}$ does not change its sign: obvious, since $P_{n-1}$ is constant
-\item for any $i\in\{0,\ldots,n-1\}$ and any root $x_0$ of $P_{i+1}$, $P_{i}(x_0)P_{i+2}(x_0) < 0$ holds:\\
-By construction, we have $P_{i+2} = -P_{i}\ \textit{mod}\ P_{i+1}$. With $P_{i+1}(x_0)=0$, this implies that $P_{i+2}(x) = -P_i(x)$, and because of Lemma \ref{thm:sturm_gcd} and the fact that $P$ has no multiple roots, we also have $P_i(x)\neq 0$ and thus $P_i(x)P_{i+2}(x)<0$.
+\item for any $i\in\{0,\ldots,n-2\}$ and any root $x_0$ of $P_{i+1}$, $P_{i}(x_0)P_{i+2}(x_0) < 0$ holds:\\
+By construction, we have $P_{i+2} = -P_{i}\ \textit{mod}\ P_{i+1}$ and thus $P_i = P_{i+1}Q - P_{i+2}$ for some $Q\in\RR[X]$. With $P_{i+1}(x_0)=0$, this implies that $P_{i+2}(x) = -P_i(x)$, and because of Lemma \ref{thm:sturm_gcd} and the fact that $P$ has no multiple roots, we also have $P_i(x)\neq 0$ and thus $P_i(x)P_{i+2}(x)<0$.
 \item for any root $x_0$ of $P_0$, $P_0(x)P_1(x)$ is negative in some sufficiently small interval\\ \mbox{$(x_0-\epsilon;x_0)$} and positive in some sufficiently small interval $(x_0;x_0+\epsilon)$:\\
-Since $P_0=P$ and $P_1=P'$ are polynomials, there exists some neighbourhood of $x_0$ that does not contain any roots of either $P_0$ or $P_1$. For any $x<x_0$ in that neighbourhood, we can then apply the mean value theorem to obtain some $\xi\in[x;x_0]$ with $P(x)-P(x_0) = P'(\xi)(x-x_0)$, and since $P(x_0)=0$ and $x-x_0<0$, $P(x)=P'(\xi)$. Furthermore, $P(x)\neq 0$ and $P'(\xi)$ has the same sign as $P'(x)$, since we chose a neighbourhood without roots; therefore we have $P(x)P'(x)<0$. For any $x>x_0$, we can use the same argument to find that $P(x)P'(x)>0$.
+Since $P_0=P$ and $P_1=P'$ are polynomials, there exists some neighbourhood of $x_0$ that does not contain any roots of either $P_0$ or $P_1$.
+For any $x<x_0$ in that neighbourhood, we can then apply the mean value theorem to obtain some $\xi\in[x;x_0]$ with 
+$$P'(\xi)(x-x_0) = P(x)-P(x_0) = P(x)$$
+Due to $x < x_0$ $P(x)$, this implies $\sgn(P(x))=-\sgn(P'(\xi))$. Furthermore, recall that we chose a neighbourhood of $x_0$ that contains no roots of $P$ or $P'$; therefore, $0\neq \sgn(P'(\xi))=\sgn(P'(x))=-\sgn(P(x))$. This directly implies $P(x)P'(x)<0$. Similarly, for any $x>x_0$ in that neighbourhood, we can use the same argument to find that $P(x)P'(x)>0$.
 \item $P_0$ and $P_1$ have no common roots:\\
 $P_0=P$ and $P_1=P'$, so if $P_0$ and $P_1$ had a common root, it would be a multiple root of $P$, which contradicts our assumption.
 \end{itemize}
@@ -312,18 +320,18 @@ Let $P\in\RR[X]\setminus\RR$, i.e. a nonconstant real polynomial. Let $P_0,\ldot
 First, we note that $\gcd(P,P')\neq 0$, since $P'\neq 0$ by assumption. Furthermore, lemma \ref{thm:sturm_gcd} implies that $\gcd(P,P')\ |\ P_i$ for all $i$, thus $Q_i\in\RR[X]$, i.e. the $Q_i$ really are polynomials. This means that our definition of $Q_0,\ldots,Q_{n-1}$ is well-defined.\\
 Now we show that the five properties for a Sturm sequence are satisfied:
 \begin{itemize}
-\item the sequence has at least length 2: obvious by construction of $Q_0, \ldots, Q_{n+1}$
+\item the sequence has at least length 2: obvious by construction of $Q_0, \ldots, Q_{n-1}$
 \item $Q_{n-1}$ does not change its sign: obvious, since $P_{n-1}$ is constant, so $Q_{n-1}$ is, too.
 \item $Q_0$ and $Q_1$ have no common roots:\\
-By construction, we have $Q_0 = P / \gcd(P,P')$ and $Q_1 = (P / \gcd(P, P'))'$. This then implies $\gcd(Q_0, Q_1) = 1$. However, the proof for this algebraic fact is nontrivial; it was, of course, proven in the \emph{Isabelle} version of this proof, but it is too complex and not important enough to be discussed in detail here.
+By construction, we have $Q_0 = P / \gcd(P,P')$ and $Q_1 = (P / \gcd(P, P'))'$. This then implies $\gcd(Q_0, Q_1) = 1$. However, the proof for this algebraic fact is nontrivial; it was, of course, proven in the \emph{Isabelle} version of this proof, but it is too complex and at the same time not important enough to be discussed in detail here.
 \item for any $i\in\{0,\ldots,n-1\}$ and any root $x_0$ of $Q_{i+1}$, $Q_{i}(x_0)Q_{i+2}(x_0) < 0$ holds:\\
 By construction of the canonical Sturm sequence, we have:
 $$P_{i+2} = -P_{i}\ \mathrm{mod}\ P_{i+1}$$
 Therefore, we have:
 $$(P_{i}\ \mathrm{div}\ P_{i+1}) \cdot P_{i+1} - P_{i+2} = P_{i}$$
-Let $D:=\gcd(P,P')$. Since $D$ divides all the $P_j$; we have $P_{i}=D\cdot Q_{i}$, $P_{i+1}=D\cdot Q_{i+1}$, and $P_{i+2}=D\cdot Q_{i+2}$ and thus:
+Let $D:=\gcd(P,P')$. Since $D$ divides all the $P_j$, we have $P_{i}=D\cdot Q_{i}$, $P_{i+1}=D\cdot Q_{i+1}$, and $P_{i+2}=D\cdot Q_{i+2}$ and thus:
 $$(D\cdot Q_{i}\ \mathrm{div}\ D\cdot Q_{i+1}) \cdot D\cdot Q_{i+1} - D\cdot Q_{i+2} = D\cdot Q_{i}$$
-Cancelling $D$ yields:
+Cancelling $D$ (allowed since $\RR[X]$ is an integral domain and $D\neq 0$) yields:
 $$(Q_{i}\ \mathrm{div}\ Q_{i+1}) \cdot Q_{i+1} - Q_{i+2} = Q_{i}$$
 Since $x_0$ is a root of $Q_{i+1}(x_0)$, we then have:
 $$-Q_{i+2}(x_0) = Q_{i}(x_0)$$
@@ -362,16 +370,16 @@ It is now easy to see that in both of the two cases $D(x)>0$ and $D(x)<0$, the n
 \end{enumerate}
 \end{proof}
 
-In conclusion: if we want to count the roots of some $P$ between bounds $a,b\in\RR\cup\{-\infty,\infty\}$ with $a\leq b$, we use $\sigma$, $\sigma_\infty$ and $\sigma_{-\infty}$ with a Sturm sequence of $P$, and such a Sturm sequence can be obtained by applying the canonical Sturm sequence construction to $P$ if neither $a$ nor $b$ are roots of both $P$ and $P'$, or by applying it to $P/\gcd(P,P')$ if they are.
+In conclusion: if we want to count the roots of some $P$ between bounds $a,b\in\RR\cup\{-\infty,\infty\}$ with $a\leq b$, we use $\sigma$ with a Sturm sequence of $P$, and such a Sturm sequence can be obtained by applying the canonical Sturm sequence construction to $P$ if neither $a$ nor $b$ are roots of both $P$ and $P'$, or by applying it to $P/\gcd(P,P')$ if they are.
 
 
 \newpage
 \section{Applications}
 \label{sec:applications}
 
-The statements that were proven in lemma \ref{thm:count_roots_between} and lemma \ref{thm:count_roots} were that Sturm sequences can be used to count the roots of a polynomial $P$ in an interval of the form $(a;b)$ for $a,b\in\RR$, $a < b$ or in the interval $(-\infty;\infty)$. However, by adding case distinctions on whether $a$ and $b$ are roots of $P$, this can easily be generalised to arbitrary open, half-closed, closed, bounded, and unbounded real intervals.
+The statements that were proven in lemma \ref{thm:count_roots_between} and lemma \ref{thm:count_roots} were that\ Sturm se\-quen\-ces can be used to count the roots of a polynomial $P$ in an interval of the form $(a;b]$ for $a,b\in\RR$, $a < b$ or in the interval $(-\infty;\infty)$. However, by adding case distinctions on whether $a$ and $b$ are roots of $P$, this can easily be generalised to arbitrary open, half-closed, closed, bounded, and unbounded real intervals.
 
-Furthermore, statements such as $\forall x \in I.\ P(x) \neq 0$ can be decided by counting the number of roots with the above method and checking whether it is zero. This, in turn, can be used to decide statements of the form $\forall x\in I.\ P(x) > 0$ by checking that $\forall x\in I.\ P(x) > 0$ holds and $\lim_{x\to\infty} P(x) = \infty$.
+Furthermore, statements such as $\forall x \in I.\ P(x) \neq 0$ can be decided by counting the number of roots with the above method and checking whether it is zero.
 
 By observing that for any two polynomials $P$ and $Q$, we have 
 \begin{align*}
@@ -379,10 +387,10 @@ P(x) = 0 \wedge Q(x) = 0\hskip5mm&\Longleftrightarrow\hskip5mm \gcd(P,Q) = 0\\
 P(x) = 0 \vee Q(x) = 0\hskip5mm&\Longleftrightarrow\hskip5mm (P\cdot Q)(x) = 0
 \end{align*}
 we can further generalise our method to arbitrary statements of the form
-$$(\forall x \in I.\ P(x))\hskip5mm\mathrm{and}\hskip5mm |\{x\ |\ Q(x)\}| = n$$
-where $I$ is an open, half-closed, or closed, bounded or unbounded real interval and $P$ is a property consisting of the operators $\wedge$, $\vee$, $+$, $-$, $\cdot$, $\hat{\ }$, $\neq$ and $Q$ is a property consisting of the operators $\wedge$, $\vee$, $+$, $-$, $\cdot$, $\hat{\ }$, $=$.\\
+$$(\forall x \in I.\ P(x))\hskip5mm\mathrm{and}\hskip5mm |\{x\in I\ |\ Q(x)\}| = n$$
+where $I$ is an open, half-closed, or closed, bounded or unbounded real interval and $P$ is a property consisting of the operators $\wedge$, $\vee$, $+$, $-$, $\cdot$, $^c$, $\neq$ and $Q$ is a property consisting of the operators $\wedge$, $\vee$, $+$, $-$, $\cdot$, $^c$, $=$.\\
 
-Independently from this, the observation that $\forall x\in I.\ P(x)>0$ holds iff $P$ has no roots in $I$ and $P(x)>0$ for some arbitrary $x\in I$ also allows us to decide statements of the form
+Independently from this, the observation that $\forall x\in I.\ P(x)>0$ holds iff $P$ has no roots in $I$ and $\lim_{x\to\infty} P(x) = \infty$ also allows us to decide statements of the form
 $$(\forall x\in I.\ P(x) > 0)\hskip5mm\mathrm{and}\hskip5mm(\forall x\in I.\ P(x) < 0)$$\vskip5mm
 
 Concrete examples of statements that can be proved in \isabellehol by the \emph{sturm} method that implements the decision procedure we just explained are:
@@ -398,6 +406,10 @@ Concrete examples of statements that can be proved in \isabellehol by the \emph{
 &\ilemma\ "\llbracket (x::\real) > 0; x \leq 2/3\rrbracket\ \Longrightarrow\ x*x \neq\ x"\ \textrm{\textbf{by}\ sturm}\\
 &\ilemma\ "(x::\real) > 1\ \Longrightarrow\ x*x > x"\ \textrm{\textbf{by}\ sturm}\\
 \end{align*}
+
+For more information on the proof method, refer to the user guide \cite{sturm_userguide}.
+
+\printbibliography
 
 \end{document}
 
