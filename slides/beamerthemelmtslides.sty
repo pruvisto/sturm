@@ -1,0 +1,165 @@
+\usepackage{ifthen}
+\usepackage{setspace}
+
+%%%%%%%%%%%
+\newcommand{\setlang}[1]{
+	\ifthenelse{\equal{#1}{de}}{\usepackage[ngerman]{babel}}{\usepackage[english]{babel}}
+	\newcommand{\lang}{#1}
+	\newcommand\TitlePicture{
+		\put(0,0){
+    \parbox[b][\paperheight]{\paperwidth}{
+    \centering
+    \includegraphics[width=\paperwidth,height=\paperheight,keepaspectratio]{figures/title_#1}
+    }}}
+	\newcommand\BackgroundPicture{
+		\put(0,0){
+    \parbox[b][\paperheight]{\paperwidth}{
+    \centering
+    \includegraphics[width=\paperwidth,height=\paperheight,keepaspectratio]{figures/bg_#1}
+    }}}
+}
+\newcommand{\type}[1]{\newcommand{\inserttype}{ \ifthenelse{\equal{\lang}{de}}
+																								{
+																									\ifthenelse{\equal{#1}{Mf}}{Masterarbeit Abschlussvortrag}
+																									{
+																										\ifthenelse{\equal{#1}{Bf}}{Bachelorarbeit Abschlussvortrag}
+																										{
+																											\ifthenelse{\equal{#1}{Df}}{Diplomarbeit Abschlussvortrag}
+																											{
+																												\ifthenelse{\equal{#1}{Sf}}{Studienarbeit Abschlussvortrag}
+																												{
+																													\ifthenelse{\equal{#1}{Mm}}{Masterarbeit Zwischenvortrag}
+																													{
+																														\ifthenelse{\equal{#1}{Bm}}{Bachelorarbeit Zwischenvortrag}
+																														{
+																															\ifthenelse{\equal{#1}{Dm}}{Diplomarbeit Zwischenvortrag}
+																															{
+																																\ifthenelse{\equal{#1}{Sm}}{Studienarbeit Zwischenvortrag}
+																																{
+																																	#1
+																																}
+																															}
+																														}
+																													}
+																												}
+																											}
+																										}
+																									}
+																								} 
+																								%english
+																								{
+																									\ifthenelse{\equal{#1}{Mf}}{Master's Thesis Final Presentation}
+																									{
+																										\ifthenelse{\equal{#1}{Bf}}{Bachelor's Thesis Final Presentation}
+																										{
+																											\ifthenelse{\equal{#1}{Df}}{Diplomarbeit Final Presentation}
+																											{
+																												\ifthenelse{\equal{#1}{Sf}}{Studienarbeit  Final Presentation}
+																												{
+																													\ifthenelse{\equal{#1}{Mm}}{Master's Thesis Midterm Presentation}
+																													{
+																														\ifthenelse{\equal{#1}{Bm}}{Bachelor's Thesis Midterm Presentation}
+																														{
+																															\ifthenelse{\equal{#1}{Dm}}{Diplomarbeit  Midterm Presentation}
+																															{
+																																\ifthenelse{\equal{#1}{Sm}}{Studienarbeit  Midterm Presentation}
+																																{
+																																	#1
+																																}
+																															}
+																														}
+																													}
+																												}
+																											}
+																										}
+																									}
+																								} }}
+\newcommand{\email}[1]{\newcommand{\insertemail}{#1}}
+
+\renewcommand{\maketitle}{\frame[plain]{\titlepage}}
+
+
+\newcommand{\Blob}{\rule[.1ex]{1ex}{1ex}}
+\newcommand{\blob}{\rule[.3ex]{.7ex}{.7ex}}
+%%%%%%%%%%%
+
+\usetheme{Rochester}
+
+%\RequirePackage{pgf}
+\setbeamertemplate{blocks}[rounded][shadow=true]
+%\setbeamercovered{transparent}
+
+\definecolor{tum-color}{rgb}{0,0.396,0.741}
+\definecolor{structure}{cmy}{1,0.43,0}
+\definecolor{beamerstructure}{cmy}{1,0.43,0}
+\setbeamercolor*{Title bar}{fg=black}
+\setbeamercolor*{frametitle}{parent=Title bar}
+
+\setbeamercolor{background canvas}{bg=}
+%\setbeamercovered{transparent}
+\setbeamertemplate{boxes}[rounded,shadow=true]
+%\setbeamertemplate{itemize item}{$\blacktriangleright$}
+%\setbeamertemplate{itemize subitem}{$\bullet$}
+%\setbeamertemplate{itemize subsubitem}{$\triangleright$}
+\setbeamertemplate{itemize item}{$\blob$}
+\setbeamertemplate{itemize subitem}{$\blob$}
+\setbeamertemplate{itemize subsubitem}{$\blob$}
+\setbeamertemplate{enumerate item}{\textbf{\insertenumlabel.}}
+
+
+\beamer@headheight=0.7\paperwidth
+
+%\usecolortheme[name=tum-color]{structure}
+%\usebeamercolor{structure}
+
+\beamerboxesdeclarecolorscheme{title}{tum-color}{tum-color}
+
+\setbeamerfont{section in head/foot}{size=\scriptsize,series=\normalfont}
+\setbeamerfont{frametitle}{size=\large,series=\bf}
+
+\setbeamertemplate{title page}
+{
+\begin{center}
+	\vspace{6ex}
+	{\small IDP Talk}\\
+	\vspace{5.0ex}
+	{\large\begin{spacing}{1.00}\inserttitle\end{spacing}}
+\vspace{4.5ex}
+	{\bf\small \insertauthor}\\
+	{\small \insertemail}\\
+\end{center}
+}
+
+\setbeamertemplate{frametitle}
+{
+\vspace{14mm}
+\usebeamerfont*{frametitle}\insertframetitle
+}
+
+\setbeamertemplate{headline}
+{
+% nothing to do here!
+}
+
+
+\setbeamertemplate{footline}
+{
+\usebeamerfont*{section in head/foot}
+\begin{beamercolorbox}[wd=\paperwidth,ht=3ex,dp=3ex,leftskip=.5em,rightskip=.5em]{background canvas}
+\hspace{8mm}
+\insertdate
+\hspace{8mm}
+\insertauthor
+\hfill
+\insertframenumber
+\hspace{8mm}
+\end{beamercolorbox}
+}
+
+
+\usecolortheme[named=tum-color]{structure}
+\usebeamercolor{structure}
+
+\beamertemplatenavigationsymbolsempty
+\beamertemplateshadowblocks
+\beamerboxesdeclarecolorscheme{block}{structure!75!black}{structure!10}

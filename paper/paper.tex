@@ -323,7 +323,7 @@ Now we show that the five properties for a Sturm sequence are satisfied:
 \item the sequence has at least length 2: obvious by construction of $Q_0, \ldots, Q_{n-1}$
 \item $Q_{n-1}$ does not change its sign: obvious, since $P_{n-1}$ is constant, so $Q_{n-1}$ is, too.
 \item $Q_0$ and $Q_1$ have no common roots:\\
-By construction, we have $Q_0 = P / \gcd(P,P')$ and $Q_1 = (P / \gcd(P, P'))'$. This then implies $\gcd(Q_0, Q_1) = 1$. However, the proof for this algebraic fact is nontrivial; it was, of course, proven in the \emph{Isabelle} version of this proof, but it is too complex and at the same time not important enough to be discussed in detail here.
+By construction, we have $Q_0 = P / \gcd(P,P')$ and $Q_1 = P' / \gcd(P, P')$. Obviously, $Q_0$ and $Q_1$ are then coprime and cannot have any common roots.
 \item for any $i\in\{0,\ldots,n-1\}$ and any root $x_0$ of $Q_{i+1}$, $Q_{i}(x_0)Q_{i+2}(x_0) < 0$ holds:\\
 By construction of the canonical Sturm sequence, we have:
 $$P_{i+2} = -P_{i}\ \mathrm{mod}\ P_{i+1}$$

@@ -81,11 +81,11 @@ The \sturm\ method uses Sturm's theorem to determine the number of distinct real
 \subsection{Examples}
 The following examples should give a good overview of what the \sturm\ method can do:
 \begin{align*}
-&\lemma\ "\card\ \{x::\real.\ (x - 1)^2 * (x + 1) = 0\} = 2"\ \textrm{\textbf{by}\ sturm}\\
-&\textbf{lemma} "\mathrm{card}\ \{x::\mathrm{real}.\ -0.010831 < x\ \wedge\ x < 0.010831\ \wedge\\
-&\hskip20mm \mathrm{poly}\ [:0, -17/2097152, -49/16777216, 1/6, 1/24, 1/120:]\ \ x\ =\ 0\} = 3"\ \textrm{\textbf{by}\ sturm}\\
-&\lemma\ "\card\ \{x::\real.\ x^3 + x = 2*x^2\ \wedge\ x^3-6*x^2+11*x=6\} = 1"\ \textrm{\textbf{by}\ sturm}\\
-&\lemma\ "\card\ \{x::\real.\ x^3 + x = 2*x^2\ \vee\ x^3-6*x^2+11*x=6\} = 4"\ \textrm{\textbf{by}\ sturm}\\
+&\lemma\ "\card\ \{x::\real.\ (x - 1)^2 * (x + 1) = 0\}\  =\  2"\ \textrm{\textbf{by}\ sturm}\\
+&\lemma\ "\mathrm{card}\ \{x::\mathrm{real}.\ -0.010831 < x\ \wedge\ x < 0.010831\ \wedge\\
+&\hskip20mm \mathrm{poly}\ [:0, -17/2097152, -49/16777216, 1/6, 1/24, 1/120:]\ \ x\ =\ 0\}\  =\  3"\ \textrm{\textbf{by}\ sturm}\\
+&\lemma\ "\card\ \{x::\real.\ x^3 + x = 2*x^2\ \wedge\ x^3-6*x^2+11*x=6\}\  =\  1"\ \textrm{\textbf{by}\ sturm}\\
+&\lemma\ "\card\ \{x::\real.\ x^3 + x = 2*x^2\ \vee\ x^3-6*x^2+11*x=6\}\  =\  4"\ \textrm{\textbf{by}\ sturm}\\
 &\lemma\ "(x::\real)^2+1 > 0"\ \textrm{\textbf{by}\ sturm}\\
 &\lemma\ "(x::\real) > 0\ \Longrightarrow\ x^2+1 > 0"\ \textrm{\textbf{by}\ sturm}\\
 &\lemma\ "\llbracket (x::\real) > 0; x \leq 2/3\rrbracket\ \Longrightarrow\ x*x \neq\ x"\ \textrm{\textbf{by}\ sturm}\\
@@ -109,7 +109,7 @@ The \sturm\ method can be directly applied to statements such as this and prove 
 \subsection{More complex expressions}
 
 By using some simple preprocessing, the \sturm\ method can also decide more complex statements:
-$$\card\ \{x::\real.\ x > a\ \wedge\ x < b\ \wedge\ P\ x\}$$
+$$\card\ \{x::\real.\ x > a\ \wedge\ x < b\ \wedge\ P\ x\}\ =\ n$$
 where $P\ x$ is a \enquote{polynomial expression}, which is defined as:
 \begin{enumerate}
 \item $p\ x= q\ x$, where $p$ and $q$ are polynomial functions, such as $\lambda x.\ a$, $\lambda x.\ x$, $\lambda x.\ x^2$, $\mathrm{poly}\ p$, and so on
