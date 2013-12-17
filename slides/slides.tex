@@ -110,10 +110,10 @@ is the number of real roots of $P$ in the interval $(a; b]$.}
 But what is a Sturm sequence of $P$?\\
 A (reasonably) general definition:\\
 \begin{itemize}
-\item $P_0 = P$
-\item $P_0$ and $P_1$ have no common roots
-\item $P_{n-1}$ (last element) does not change its sign
-\item if $x_0$ is root of $P_0$: $P_0P_1(x)<0$ in some left-NH and $P_0P_1(x)>0$ in some right-NH of $x_0$
+\item $P_0 = P$\pause
+\item $P_0$ and $P_1$ have no common roots\pause
+\item $P_{n-1}$ (last element) does not change its sign\pause
+\item if $x_0$ is root of $P_0$: $P_0P_1(x)<0$ in some left-NH and $P_0P_1(x)>0$ in some right-NH of $x_0$\pause
 \item if $x_0$ is root of another $P_i$: $P_{i-1}P_{i+1}(x_0) < 0$
 \end{itemize}
 \end{frame}
@@ -128,21 +128,26 @@ A (reasonably) general definition:\\
 
 \begin{frame}{Proving Sturm's Theorem}
 Assume we already have a Sturm chain. Why does it count roots?\\
-Follow $x \mapsto \sigma(P_0, \ldots, P_{n-1}; x)$ passing over $\RR$. Obviously, it can only change at $x_0$ if one of the $P_i$ has a root at $x_0$
+Follow $x \mapsto \sigma(P_0, \ldots, P_{n-1}; x)$ passing over $\RR$. Obviously, it can only change at $x_0$ if one of the $P_i$ has a root at $x_0$\pause
 \begin{itemize}
-\item if $P_i \neq P_0$ has $x_0$ as a root, $P_{i-1}P_{i+1}(x_0) < 0$\\
-$\Rightarrow$ signs of $P_{i-1}$, $P_{i+1}$ are $\neq 0$, opposite, constant in NH of $x_0$\\
-$\Rightarrow$ signs $[1,\, \_\,, -1]$ or $[-1,\, \_\,, 1]$ in the entire NH, i.e. one sign change\\
-$\Rightarrow$ total number of sign changes not influenced\\[1mm]
-\item if $P_0$ has $x_0$ as root, $P_0P_1(x_0) < 0$ in left-NH of $x_0$, $>0$ in right-NH\\
-$\Rightarrow$ signs are different left of $x_0$ and the same right of $x_0$\\
+\item if $P_i \neq P_0$ has $x_0$ as a root, $P_{i-1}P_{i+1}(x_0) < 0$\\\pause
+$\Rightarrow$ signs of $P_{i-1}$, $P_{i+1}$ are $\neq 0$, opposite, constant in NH of $x_0$\\\pause
+$\Rightarrow$ signs $[1,\, \_\,, -1]$ or $[-1,\, \_\,, 1]$ in the entire NH, i.e. one sign change\\\pause
+$\Rightarrow$ total number of sign changes not influenced\\[1mm]\pause
+\item if $P_0$ has $x_0$ as root, $P_0P_1(x_0) < 0$ in left-NH of $x_0$, $>0$ in right-NH\\\pause
+$\Rightarrow$ signs are different left of $x_0$ and the same right of $x_0$\\\pause
 $\Rightarrow$ total number of sign changes decreases by one
 \end{itemize}
 \end{frame}
 
 \begin{frame}{Proving Sturm's Theorem}
 Formal proof: a lot of induction on the sequences and number of roots\\[2mm]
-$\Longrightarrow$ messy and not terribly interesting
+$\Longrightarrow$ messy and not terribly interesting, I'll spare you the details
+\end{frame}
+
+\begin{frame}{Proving Sturm's Theorem}
+We now know that Sturm sequences can count roots.\\
+But how do we construct one?
 \end{frame}
 
 \begin{frame}{Construction Sturm sequences}
@@ -155,11 +160,11 @@ P' & \mathrm{for}\ i = 1\\
 \end{frame}
 
 \begin{frame}{Construction Sturm sequences}
-Why does it work? Nonobvious parts:\\[3mm]
+Why does it work? Nonobvious parts:\\[3mm]\pause
 
 If $x_0$ is root of $P_0 = P$: $PP'(x_0) < 0$ in left-NH and $PP'(x_0) > 0$ in right-NH\\
 -- pick neighbourhood without roots of $P_0$ and $P_1$ (except for $x_0$),\\
-\hskip3mm apply mean value theorem\\[3mm]
+\hskip3mm apply mean value theorem\\[3mm]\pause
 
 If $x_0$ is root of another $P_i$: $P_{i-1}P_{i+1}(x_0) < 0$ in some NH of $x_0$\\
 -- by construction, $P_{i-1} = Q\cdot P_i - P_{i+1}$ for some $Q\in\RR[X]$\\
@@ -168,16 +173,21 @@ If $x_0$ is root of another $P_i$: $P_{i-1}P_{i+1}(x_0) < 0$ in some NH of $x_0$
 \end{frame}
 
 \begin{frame}{Construction Sturm sequences}
-In case of multiple roots: Let $D := \mathrm{gcd}(P,P')$. Then:
+This construction assumed no multiple roots.\\
+What do we do if there are multiple roots?
+\end{frame}
+
+\begin{frame}{Construction Sturm sequences}
+In case of multiple roots: Let $D := \mathrm{gcd}(P,P')$. Then:\pause
 \begin{description}
 \item[The obvious way:]\ \\
 \begin{itemize}
 \item compute canonical Sturm chain of $P / D$\\ (\enquote{divide out} multiple roots)
-\end{itemize}
+\end{itemize}\pause
 \item[The clever way:]\ \\
 \begin{itemize}
-\item we can compute the canonical Sturm chain of $P$ and divide by $D$ afterwards
-\item but: if $D(x)\neq 0$, dividing by $D$ does not change the number of sign changes at $x$
+\item we can compute the canonical Sturm chain of $P$ and divide by $D$ afterwards\pause
+\item but: if $D(x)\neq 0$, dividing by $D$ does not change the number of sign changes at $x$\pause
 \item $\Longrightarrow$ unless the interval bounds are multiple roots, we can use the canonical construction without changes
 \end{itemize}
 \end{description}
@@ -186,6 +196,7 @@ In case of multiple roots: Let $D := \mathrm{gcd}(P,P')$. Then:
 \begin{frame}{Making a decision procedure}
 \textit{count\_roots\_between\ p\ a\ b}: picks the most efficient Sturm chain construction and:
 $$\textit{count\_roots\_between}\ p\ a\ b\ \ =\ \ |\{x.\ a < x\ \wedge\ x \leq b\ \wedge\ p(x) = 0\}|$$\vskip2mm
+\pause
 
 Some fluff:
 \begin{itemize}
@@ -198,8 +209,8 @@ In summary: we can count roots in any open/halfopen/closed, bounded/unbounded re
 \begin{frame}{Making a decision procedure}
 Some more fluff:
 \begin{itemize}
-\item and/or: count $x$ with $$P(x)=0\ \wedge\ Q(x)=0\hskip5mm\mathrm{or}\hskip5mm P(x)=0\ \vee\ Q(x)=0$$
-\item $\forall$-inequalities: $$\forall x.\ P(x) \neq Q(x)\ \wedge\ R(x) \neq S(x)\ \vee\ T(x)\neq U(x)$$
+\item and/or: count $x$ with $$P(x)=0\ \wedge\ Q(x)=0\hskip5mm\mathrm{or}\hskip5mm P(x)=0\ \vee\ Q(x)=0$$\pause
+\item $\forall$-inequalities: $$\forall x.\ P(x) \neq Q(x)\ \wedge\ R(x) \neq S(x)\ \vee\ T(x)\neq U(x)$$\pause
 \item $\forall$ with $<$ and $>$: $$\forall x.\ P(x) < Q(x)\ \wedge\ R(x) > S(x)\ \vee\ T(x)\neq U(x)$$
 \end{itemize}
 \end{frame}

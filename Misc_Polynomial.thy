@@ -1,8 +1,13 @@
-theory Misc_Polynomial
+btheory Misc_Polynomial
 imports "~~/src/HOL/Library/Poly_Deriv" Misc Misc_Analysis
 begin
 
 section {* General simplification lemmas *}
+
+lemma poly_gcd_right_idem: "gcd (gcd (p :: _ poly) q) q = gcd p q"
+    by (rule poly_gcd_unique, simp_all add: poly_gcd_monic)
+lemma poly_gcd_left_idem: "gcd p (gcd (p :: _ poly) q) = gcd p q"
+    by (rule poly_gcd_unique, simp_all add: poly_gcd_monic)
 
 lemma degree_power_eq:
   "(p::('a::idom) poly) \<noteq> 0 \<Longrightarrow> degree (p^n) = n * degree p"
@@ -152,6 +157,43 @@ qed
 
 lemma bezout_poly': "\<exists>r s. gcd (p::('a::field) poly) q = r*p+s*q"
     using bezout_poly by blast
+
+
+lemma poly_coprime_iff_no_zero_lincomb:
+  fixes p :: "('a :: field_inverse_zero) poly"
+  assumes "p \<noteq> 0" "q \<noteq> 0"
+  shows "coprime p q \<longleftrightarrow> \<not>(\<exists>s t. s \<noteq> 0 \<and> t \<noteq> 0 \<and> 
+             degree s < degree q \<and> degree t < degree p \<and> s*p+t*q=0)"
+             (is "?A \<longleftrightarrow> ?B")
+proof-
+  {
+    assume "\<not>coprime p q"
+    def d \<equiv> "gcd p q"
+    from assms have [simp]: "d \<noteq> 0" by (simp add: d_def)
+    with assms and `\<not>coprime p q` have [simp]: "degree d > 0" unfolding d_def
+        by (simp add: degree_gcd_not_coprime)
+    obtain s t where A: "p = d * t" "q = d * s" 
+        using poly_gcd_dvd1 poly_gcd_dvd2 unfolding d_def dvd_def by blast
+    with `\<not>coprime p q` have "degree (-t) < degree p" and "degree s < degree q"
+        using assms by (simp_all add: degree_mult_eq)
+    moreover from A have "s * p + (-t) * q = 0" by simp
+    moreover from assms and A have "s \<noteq> 0" and "-t \<noteq> 0" by simp_all
+    ultimately have "\<not>?B" by blast
+  }
+  moreover
+  {
+    assume "coprime p q"
+    assume "\<not>?B"
+    then obtain s t where "degree t < degree p" "s*p+t*q = 0" "t \<noteq> 0" by blast
+    hence "p dvd s*p+t*q" and "p dvd s*p" by simp_all
+    hence "p dvd t*q" using dvd_add_cancel1 by blast
+    with `coprime p q` have "p dvd t" by (rule poly_coprime_dvd_mult1)
+    hence "degree p \<le> degree t" using `t \<noteq> 0` by (rule dvd_imp_degree_le)
+    with `degree t < degree p` have False by simp
+  }
+  ultimately show ?thesis by blast
+qed
+
 
 
 (* TODO: make this less ugly *)
