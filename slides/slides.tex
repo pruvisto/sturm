@@ -69,21 +69,12 @@
 
 \begin{frame}{Motivation}
 \begin{description}
-\item[We have:] a polynomial with real coefficients
+\item[We have:] a polynomial with {\text{\only<1,2>{real coefficients}\only<3->{\color{red}real coefficients}}}
 \pause\item[We want:] the number of real roots in a specific interval
-\end{description}
-\end{frame}
-
-\begin{frame}{Motivation}
-\vspace*{1.65mm}
-\begin{description}
-\item[We have:] a polynomial with $\overbrace{\text{\color{red}real\ coefficients}}^{\text{not\ really}}$
-\vspace*{-0.05mm}
-\item[We want:] the number of real roots in a specific interval
-\end{description}
-\vspace{5mm}
+\end{description}\vskip5mm
 \pause
-For \enquote{real} computations: restricted to appropriate subset of $\RR$, such as $\QQ$.
+For reals?\\\pause
+No. Only for rationals. (or any other sufficiently nice subset of $\RR$)
 \end{frame}
 
 \begin{frame}{Motivation}
@@ -95,7 +86,7 @@ $\Longrightarrow$ Let's formalise it in Isabelle/HOL
 \end{frame}
 
 \begin{frame}{Notation}
-\emph{Sign changes:} $\sigma(P_0,\ldots,P_{n-1}; x)$ denotes denotes the number of sign changes in the sequence $P_0(x), \ldots, P_{n-1}(x)$\\[2mm]
+\emph{Sign changes:} $\sigma(P_0,\ldots,P_{n-1}; x)$ denotes the number of sign changes in the sequence $P_0(x), \ldots, P_{n-1}(x)$\\[2mm]
 For the functionally inclined:\vskip-6mm
 $$\sigma(ps; x) = (\mathrm{length} \circ \mathrm{remdups\_adj} \circ \mathrm{filter}\ (\neq 0) \circ \mathrm{map}\ (\lambda p.\ p(x)))\ ps\ -\ 1$$
 \end{frame}
