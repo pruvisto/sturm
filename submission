@@ -1,0 +1,28 @@
+To: afp-submit at in.tum.de
+
+Authors: Manuel Eberl
+URLs/email addresses: eberlm@in.tum.de
+
+Title: Sturm's Theorem
+
+Entry name: Sturm
+
+Abstract:
+
+Sturm sequences are a method of efficiently computing the number of real
+roots of a real polynomial inside a given interval. This work contains 
+a proof of Sturm's Theorem, which states that Sturm sequences count 
+polynomials, and code for constructing Sturm chains efficiently. It also 
+provides the “sturm” proof method, which can decide certain statements about 
+the roots of real polynomials, such as “the polynomial P has exactly n roots 
+in the interval I” or “P(x) > Q(x) for all x ∈ ℝ”.
+
+
+
+Maintainer: Manuel Eberl
+
+Topic [see http://afp.sf.net/topics.shtml]: Analysis, Algebra
+
+License: 
+If accepted, I publish my submission under the terms of the BSD-style
+license detailed at [http://afp.sf.net/LICENSE].

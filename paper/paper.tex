@@ -73,7 +73,7 @@
 \maketitle
 
 \begin{abstract}
-\emph{Sturm sequences} are a method of efficiently computing the number of real roots of a real polynomial inside a given interval. In this project, this fact and a number of me\-thods to construct Sturm sequences efficiently have been formalised with the interactive theorem prover Isabelle\slash HOL. Buil\-ding upon this, an Isabelle\slash HOL proof method was then implemented to prove statements about the number of roots of a real polynomial and related properties.
+\emph{Sturm sequences} are a method for computing the number of real roots of a real polynomial inside a given interval efficiently. In this project, this fact and a number of me\-thods to construct Sturm sequences efficiently have been formalised with the interactive theorem prover Isabelle\slash HOL. Buil\-ding upon this, an Isabelle\slash HOL proof method was then implemented to prove statements about the number of roots of a real polynomial and related properties.
 \end{abstract}\vskip10mm
 
 \tableofcontents
@@ -311,13 +311,13 @@ $P_0=P$ and $P_1=P'$, so if $P_0$ and $P_1$ had a common root, it would be a mul
 
 \subsection{The case of multiple roots}
 
-Of course, one way to handle a polynomial with multiple roots is to use lemma \ref{thm:squarefree} and \enquote{divide away} the \enquote{excess roots} by dividing the polynomial $P$ by $\gcd(P,P')$. However, surprisingly, it turns out that as long as the interval bounds $a$ and $b$ are not multiple roots of $P$ themselves, i.e. at least one of $P(a)\neq 0$ and $P'(a)\neq 0$ and at least one of $P(b)\neq 0$ and $P'(b)\neq 0$ holds, one can simply use the canonical Sturm sequence without any modification. To show this, we will first prove the following auxiliary result:
+Of course, one way to handle a polynomial with multiple roots is to use Lemma \ref{thm:squarefree} and \enquote{divide away} the \enquote{excess roots} by dividing the polynomial $P$ by $\gcd(P,P')$. However, surprisingly, it turns out that as long as the interval bounds $a$ and $b$ are not multiple roots of $P$ themselves, i.e. at least one of $P(a)\neq 0$ and $P'(a)\neq 0$ and at least one of $P(b)\neq 0$ and $P'(b)\neq 0$ holds, one can simply use the canonical Sturm sequence without any modification. To show this, we will first prove the following auxiliary result:
 
 \begin{lemma}\label{thm:sturm_multiple_aux}
 Let $P\in\RR[X]\setminus\RR$, i.e. a nonconstant real polynomial. Let $P_0,\ldots,P_{n-1}$ be the result of the canonical Sturm sequence construction of $P$ and define $Q_i := P_i / \gcd(P,P')$. Then $Q_i$ is a Sturm sequence and $Q_0$ has the same roots, disregarding multiplicity, as $P$.
 \end{lemma}
 \begin{proof}
-First, we note that $\gcd(P,P')\neq 0$, since $P'\neq 0$ by assumption. Furthermore, lemma \ref{thm:sturm_gcd} implies that $\gcd(P,P')\ |\ P_i$ for all $i$, thus $Q_i\in\RR[X]$, i.e. the $Q_i$ really are polynomials. This means that our definition of $Q_0,\ldots,Q_{n-1}$ is well-defined.\\
+First, we note that $\gcd(P,P')\neq 0$, since $P'\neq 0$ by assumption. Furthermore, Lemma \ref{thm:sturm_gcd} implies that $\gcd(P,P')\ |\ P_i$ for all $i$, thus $Q_i\in\RR[X]$, i.e. the $Q_i$ really are polynomials. This means that our definition of $Q_0,\ldots,Q_{n-1}$ is well-defined.\\
 Now we show that the five properties for a Sturm sequence are satisfied:
 \begin{itemize}
 \item the sequence has at least length 2: obvious by construction of $Q_0, \ldots, Q_{n-1}$
@@ -350,7 +350,7 @@ $$P_0(x)P_1(x) = Q_0(x)Q_1(x)\cdot \underbrace{D(x)^2}_{>0}$$
 This then obviously implies the property we want to show.
 \end{itemize}
 \vskip3mm
-It remains to show that $Q_0$ has the same roots, disregarding multiplicity, as $P = P_0$. This is precisely the statement of lemma \ref{thm:squarefree}.
+It remains to show that $Q_0$ has the same roots, disregarding multiplicity, as $P = P_0$. This is precisely the statement of Lemma \ref{thm:squarefree}.
 \end{proof}\vskip10mm
 
 Of course, there is no reason to use this construction in practice, since if one has computed $\gcd(P,P')$ already, it is easier to compute the canonial Sturm sequence of $P/\gcd(P,P')$ directly than to compute the canonical Sturm sequence of $P$ and then divide every polynomial in it by $\gcd(P,P')$. However, it becomes useful when combined with the following insight:
@@ -377,7 +377,7 @@ In conclusion: if we want to count the roots of some $P$ between bounds $a,b\in\
 \section{Applications}
 \label{sec:applications}
 
-The statements that were proven in lemma \ref{thm:count_roots_between} and lemma \ref{thm:count_roots} were that\ Sturm se\-quen\-ces can be used to count the roots of a polynomial $P$ in an interval of the form $(a;b]$ for $a,b\in\RR$, $a < b$ or in the interval $(-\infty;\infty)$. However, by adding case distinctions on whether $a$ and $b$ are roots of $P$, this can easily be generalised to arbitrary open, half-closed, closed, bounded, and unbounded real intervals.
+The statements that were proven in Lemma \ref{thm:count_roots_between} and Lemma \ref{thm:count_roots} were that\ Sturm se\-quen\-ces can be used to count the roots of a polynomial $P$ in an interval of the form $(a;b]$ for $a,b\in\RR$, $a < b$ or in the interval $(-\infty;\infty)$. However, by adding case distinctions on whether $a$ and $b$ are roots of $P$, this can easily be generalised to arbitrary open, half-closed, closed, bounded, and unbounded real intervals.
 
 Furthermore, statements such as $\forall x \in I.\ P(x) \neq 0$ can be decided by counting the number of roots with the above method and checking whether it is zero.
 
