@@ -1,11 +1,11 @@
-To: afp-submit at in.tum.de
+To: afp-submit@in.tum.de
 
 Authors: Manuel Eberl
-URLs/email addresses: eberlm@in.tum.de
+URLs/email addresses: eberlm@in.tum.de, http://in.tum.de/~eberlm
 
 Title: Sturm's Theorem
 
-Entry name: Sturm
+Entry name: Sturm_Sequences
 
 Abstract:
 
@@ -21,7 +21,8 @@ in the interval I” or “P(x) > Q(x) for all x ∈ ℝ”.
 
 Maintainer: Manuel Eberl
 
-Topic [see http://afp.sf.net/topics.shtml]: Analysis, Algebra
+Topic [see http://afp.sf.net/topics.shtml]: Analysis, Algebra, Geometry
+(The exact category would be “Algebraic Geometry”, I am not sure how to best categorise it within the existing categories)
 
 License: 
 If accepted, I publish my submission under the terms of the BSD-style
