@@ -1,6 +1,5 @@
+header {* Miscellaneous *}
 theory Sturm_Library
-imports Misc Misc_Analysis Misc_Polynomial
+imports Misc_Polynomial
 begin
-
-
 end

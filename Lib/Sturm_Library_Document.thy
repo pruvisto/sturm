@@ -1,2 +1,2 @@
 header {* Miscellaneous *}
-(*<*) theory Sturm_Library imports Main begin end (*>*)
+(*<*) theory Sturm_Library_Document imports Main begin end (*>*)

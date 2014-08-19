@@ -1,11 +1,15 @@
-session "sturm" = "HOL" +
-  options [document = pdf, document_output = "output"]
+chapter AFP
+
+session Sturm_Sequences (AFP) = HOL +
+  options [timeout = 600]
   theories [document = false]
-    Limits "~~/src/HOL/Library/Poly_Deriv"
+    "~~/src/HOL/Library/Poly_Deriv"
   theories
-    "Lib/Sturm_Library_Document" "Lib/Misc_Analysis" "Lib/Misc_Polynomial"
+    "Lib/Sturm_Library_Document"
+    "Lib/Misc_Polynomial"
   theories [document = false]
     "Lib/Sturm_Library"
   theories
-    Sturm_Theorem Sturm_Method "Examples/Sturm_Ex"
-  files "document/root.tex"
+    Sturm_Theorem Sturm_Method
+    "Examples/Sturm_Ex"
+  document_files "root.tex"

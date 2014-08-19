@@ -6,14 +6,6 @@ all: main
 main: *.tex
 	pdflatex $(FILENAME).tex
 	pdflatex $(FILENAME).tex
-#	cp $(FILENAME).pdf /home/manuel/Dropbox/Public/ba_slides.pdf
-
-#handout: *.tex
-#	sed "s/%handout/handout/" $(FILENAME).tex > $(FILENAME)_handout.tex
-#	pdflatex $(FILENAME)_handout.tex
-#	pdflatex $(FILENAME)_handout.tex
-#	rm -fv $(FILENAME)_handout.tex
-
 
 clean:
 	rm -fv $(FILENAME).dvi
@@ -30,3 +22,4 @@ clean:
 	rm -fv *.log
 	rm -fv *.vrb
 	rm -fv *~
+

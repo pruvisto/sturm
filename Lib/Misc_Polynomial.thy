@@ -1,8 +1,36 @@
-btheory Misc_Polynomial
-imports "~~/src/HOL/Library/Poly_Deriv" Misc Misc_Analysis
+(* Author: Manuel Eberl <eberlm@in.tum.de> *)
+theory Misc_Polynomial
+imports "~~/src/HOL/Library/Poly_Deriv"
 begin
 
-section {* General simplification lemmas *}
+subsection {* Analysis *}
+
+lemma fun_eq_in_ivl:
+  assumes "a \<le> b" "\<forall>x::real. a \<le> x \<and> x \<le> b \<longrightarrow> eventually (\<lambda>\<xi>. f \<xi> = f x) (at x)"
+  shows "f a = f b"
+proof (rule connected_local_const)
+  show "connected {a..b}" "a \<in> {a..b}" "b \<in> {a..b}" using `a \<le> b` by (auto intro: connected_Icc)
+  show "\<forall>aa\<in>{a..b}. eventually (\<lambda>b. f aa = f b) (at aa within {a..b})"
+  proof
+    fix x assume "x \<in> {a..b}"
+    with assms(2)[rule_format, of x]
+    show "eventually (\<lambda>b. f x = f b) (at x within {a..b})"
+      by (auto simp: eventually_at_filter elim: eventually_elim1)
+  qed
+qed
+
+subsection {* Polynomials *}
+subsubsection {* General simplification lemmas *}
+
+lemma div_diff:
+  fixes a :: "'a::ring_div"
+  assumes "q dvd a" "q dvd b"
+  shows "a div q - b div q = (a - b) div q"
+proof-
+  from assms have "a div q + (-b div q) = (a + (-b)) div q" 
+      by (subst div_add, simp_all)
+  thus ?thesis by (simp add: assms dvd_neg_div algebra_simps)
+qed
 
 lemma poly_gcd_right_idem: "gcd (gcd (p :: _ poly) q) q = gcd p q"
     by (rule poly_gcd_unique, simp_all add: poly_gcd_monic)
@@ -54,7 +82,7 @@ proof-
 qed
 
 
-section {* Divisibility of polynomials *}
+subsubsection {* Divisibility of polynomials *}
 
 text {*
   Two polynomials that are coprime have no common roots.
@@ -157,42 +185,6 @@ qed
 
 lemma bezout_poly': "\<exists>r s. gcd (p::('a::field) poly) q = r*p+s*q"
     using bezout_poly by blast
-
-
-lemma poly_coprime_iff_no_zero_lincomb:
-  fixes p :: "('a :: field_inverse_zero) poly"
-  assumes "p \<noteq> 0" "q \<noteq> 0"
-  shows "coprime p q \<longleftrightarrow> \<not>(\<exists>s t. s \<noteq> 0 \<and> t \<noteq> 0 \<and> 
-             degree s < degree q \<and> degree t < degree p \<and> s*p+t*q=0)"
-             (is "?A \<longleftrightarrow> ?B")
-proof-
-  {
-    assume "\<not>coprime p q"
-    def d \<equiv> "gcd p q"
-    from assms have [simp]: "d \<noteq> 0" by (simp add: d_def)
-    with assms and `\<not>coprime p q` have [simp]: "degree d > 0" unfolding d_def
-        by (simp add: degree_gcd_not_coprime)
-    obtain s t where A: "p = d * t" "q = d * s" 
-        using poly_gcd_dvd1 poly_gcd_dvd2 unfolding d_def dvd_def by blast
-    with `\<not>coprime p q` have "degree (-t) < degree p" and "degree s < degree q"
-        using assms by (simp_all add: degree_mult_eq)
-    moreover from A have "s * p + (-t) * q = 0" by simp
-    moreover from assms and A have "s \<noteq> 0" and "-t \<noteq> 0" by simp_all
-    ultimately have "\<not>?B" by blast
-  }
-  moreover
-  {
-    assume "coprime p q"
-    assume "\<not>?B"
-    then obtain s t where "degree t < degree p" "s*p+t*q = 0" "t \<noteq> 0" by blast
-    hence "p dvd s*p+t*q" and "p dvd s*p" by simp_all
-    hence "p dvd t*q" using dvd_add_cancel1 by blast
-    with `coprime p q` have "p dvd t" by (rule poly_coprime_dvd_mult1)
-    hence "degree p \<le> degree t" using `t \<noteq> 0` by (rule dvd_imp_degree_le)
-    with `degree t < degree p` have False by simp
-  }
-  ultimately show ?thesis by blast
-qed
 
 
 
@@ -314,10 +306,10 @@ qed
 
 
 
-section {* Sign changes of a polynomial *}
+subsubsection {* Sign changes of a polynomial *}
 
 text {*
-  If a polynomial has different signs at a position, it has a root inbetween.
+  If a polynomial has different signs at two points, it has a root inbetween.
 *}
 lemma poly_different_sign_imp_root:
   assumes "a < b" and "sgn (poly p a) \<noteq> sgn (poly p (b::real))"
@@ -362,9 +354,12 @@ lemma no_roots_inbetween_imp_same_sign:
   shows "sgn (poly p a) = sgn (poly p b)"
   using poly_different_sign_imp_root assms by auto
 
+lemma no_roots_inbetween_imp_same_sign':
+  assumes "a \<le> b" "\<forall>x. a \<le> x \<and> x \<le> b \<longrightarrow> poly p x \<noteq> (0::real)"
+  shows "sgn (poly p a) = sgn (poly p b)"
+  using assms by (cases "a = b") (auto intro!: no_roots_inbetween_imp_same_sign)
 
-
-section {* Limits of polynomials *}
+subsubsection {* Limits of polynomials *}
 
 lemma poly_neighbourhood_without_roots:
   assumes "(p :: real poly) \<noteq> 0"
@@ -452,12 +447,12 @@ proof
   def l \<equiv> "Min ?roots' - 1"
   def u \<equiv> "Max ?roots' + 1"
 
-  from `finite ?roots` have A: "finite ?roots'" "?roots' \<noteq> {}" by auto
-  from min_max.Inf_le_Sup[OF A] 
-      show "l \<le> u" unfolding l_def u_def by simp
-  from Min_le[OF A(1)] have l_props: "\<And>x. x\<le>l \<Longrightarrow> poly p x \<noteq> 0"
+  from `finite ?roots` have A: "finite ?roots'"  by auto
+  from Min_le[OF this, of 0] and Max_ge[OF this, of 0]
+      show "l \<le>  u" by (simp add: l_def u_def)
+  from Min_le[OF A] have l_props: "\<And>x. x\<le>l \<Longrightarrow> poly p x \<noteq> 0"
       by (fastforce simp: l_def)
-  from Max_ge[OF A(1)] have u_props: "\<And>x. x\<ge>u \<Longrightarrow> poly p x \<noteq> 0"
+  from Max_ge[OF A] have u_props: "\<And>x. x\<ge>u \<Longrightarrow> poly p x \<noteq> 0"
       by (fastforce simp: u_def)
   from l_props u_props show [simp]: "poly p l \<noteq> 0" "poly p u \<noteq> 0" by auto
 
@@ -587,8 +582,9 @@ proof-
 
   from poly_limit_aux have "(f ---> coeff p (degree p)) at_top"
       using tendsto_mono at_top_le_at_infinity unfolding f_def by blast
-  moreover from x_pow_n_limit_at_top assms 
-      have "LIM x at_top. g x :> at_top" by (simp add: g_def)
+  moreover from assms 
+      have "LIM x at_top. g x :> at_top"
+        by (auto simp add: g_def intro!: filterlim_pow_at_top filterlim_ident)
   ultimately have "LIM x at_top. f x * g x :> at_top"
       using filterlim_tendsto_pos_mult_at_top assms by simp
   also have "eventually (\<lambda>x. f x * g x = poly p x) at_top"
@@ -655,9 +651,9 @@ proof-
   
   from poly_limit_aux have "(f ---> coeff p (degree p)) at_bot"
       using tendsto_mono at_bot_le_at_infinity by (force simp: f_def)
-  moreover from x_pow_n_limit_at_bot assms
+  moreover from assms
       have "LIM x at_bot. g x :> (if even (degree p) then at_top else at_bot)"
-      by (simp add: g_def split: split_if_asm)
+        by (auto simp add: g_def split: split_if_asm intro: filterlim_pow_at_bot_even filterlim_pow_at_bot_odd filterlim_ident)
   ultimately have "LIM x at_bot. f x * g x :> 
                       (if even ?n then at_top else at_bot)"
       by (auto simp: assms intro: filterlim_tendsto_pos_mult_at_top 
@@ -714,7 +710,7 @@ next
           case False
             from poly_at_top_or_bot_at_bot[OF deg lc_pos] and False
               obtain x\<^sub>0 where "\<And>x. x \<le> x\<^sub>0 \<Longrightarrow> poly p x \<le> -1"
-                by (fastforce simp add: filterlim_at_bot filterlim_at_bot
+                by (fastforce simp add: filterlim_at_bot
                         eventually_at_bot_linorder less_eq_real_def)
                 hence "\<And>x. x \<le> x\<^sub>0 \<Longrightarrow> sgn (poly p x) = -1" by force
               thus ?thesis 
@@ -753,7 +749,7 @@ qed
 
 
 
-section {* Sturm chain-specific stuff *}
+subsubsection {* Signs of polynomials for sufficiently large values *}
 
 lemma polys_inf_sign_thresholds:
   assumes "finite (ps :: real poly set)"
@@ -801,7 +797,7 @@ proof-
 qed
 
 
-section {* Auxiliary Lemmas for deciding positivity of polynomials *}
+subsubsection {* Positivity of polynomials *}
 
 lemma poly_pos:
   "(\<forall>x::real. poly p x > 0) \<longleftrightarrow> poly_inf p = 1 \<and> (\<forall>x. poly p x \<noteq> 0)"

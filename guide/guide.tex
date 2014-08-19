@@ -74,7 +74,6 @@
 \section{Introduction}
 
 The \sturm\ method uses Sturm's theorem to determine the number of distinct real roots of a polynomial (with rational coefficients) within a certain interval. It also provides some preprocessing to decide a number of statements that can be reduced to real roots of polynomials, such as simple polynomial inequalities and logical combinations of polynomial equations.
-\vspace*{10mm}
 
 \section{Usage}
 
@@ -90,6 +89,10 @@ The following examples should give a good overview of what the \sturm\ method ca
 &\lemma\ "(x::\real) > 0\ \Longrightarrow\ x^2+1 > 0"\ \textrm{\textbf{by}\ sturm}\\
 &\lemma\ "\llbracket (x::\real) > 0; x \leq 2/3\rrbracket\ \Longrightarrow\ x*x \neq\ x"\ \textrm{\textbf{by}\ sturm}\\
 &\lemma\ "(x::\real) > 1\ \Longrightarrow\ x*x > x"\ \textrm{\textbf{by}\ sturm}\\
+&\lemma\ "x \geq -0.5\ \Longrightarrow\ x \leq 1\ \Longrightarrow\ x^3 - 5*x^2 + x + 3 \geq (0::\mathrm{real})"\ \textrm{\textbf{by}\ sturm}\\
+&\lemma\ "\textrm{mono}\ (\lambda x::\mathrm{real}.\ x^3)"\ \textrm{\textbf{by}\ sturm}\\
+&\lemma\ "\textrm{strict\_mono}\ (\lambda x::real.\\\
+&\hskip20mm\ x^7/7 - 14/5*x^5 + 3*x^4 + 49/3*x^3 - 42*x^2 + 36*x - 13)"\ \textrm{\textbf{by}\ sturm}\\
 \end{align*}
 
 \subsection{Determining the number of real roots}
@@ -99,7 +102,6 @@ $?n$ should be replaced by the actual number of such roots and $p$ may be any po
 
 Furthermore, the \sturm\ method can instantiate the number $?n$ on the right-hand side automatically if it is left unspecified (as a schematic variable in a schematic lemma). However, due to technical restrictions this also takes twice as long as simply proving that the specified number is correct.
 
-\newpage
 \subsection{Inequalities}
 
 A simple special case of root counting is the statement that a polynomial $p\in\RR[X]$ has no roots in a certain interval, which can be written as:
@@ -124,11 +126,19 @@ where $P\ x$ is a \enquote{negated polynomial expression}, which is defined as:
 \item $P\ x\ \wedge\ Q\ x$ or $P\ x\ \vee\ Q\ x$, where $P\ x$ and $Q\ x$ are negated polynomial expressions
 \end{enumerate}
 
-\subsection{Simple ordered inequalities}
+\subsection{Simple strict linear inequalities}
 For any polynomial $p\in\RR[X]$, the question whether $p(x) > 0$ for all $x\in I$ for a non-empty real interval $I$ can obviously be reduced to the question of whether $p(x) \neq 0$ for all $x\in I$, \ie $p$ has no roots in $I$, and $p(x) > 0$ for some arbitrary fixed $x\in I$, the first of which can be decided using Sturm's theorem and the second by choosing an arbitrary $x\in I$ and evaluating $p(x)$.\\
 
 Using this reduction, the \sturm\ method can also decide single \enquote{less than}/\enquote{greater than} inequalities of the form 
 $$\forall x::\real.\ x > a\ \wedge\ x < b\ \longrightarrow\ p\ x < q\ x$$
+
+\subsection{Simple nonstrict linear inequalities and monotonicity}
+
+The \sturm\ method can also decide nonstrict inequalities, e.g. $p(x) \geq 0$ for all $x\in I$ where $I$ is a non-empty real interval. In contrast to the previous cases, proving nonstrict inequalities is done with help from an ML function that computes a witness, which is then used in the proof by the actual proof method. The witness is a decomposition of the interval in question into disjoint intervals such that every interval contains exactly one root, which makes it possible to check nonnegativity by verifying it on each interval.
+
+Note that while this does not compromise soundness in any way (as witnesses still have to go through checking in Isabelle), it may compromise completeness if the ML code, due to a bug, fails to provide an adequate witness.\newpage
+
+Additionally, the \sturm\ method can also prove monotonicity and strict monotonicity of polynomials (over the entire real line) by reducing the problem to nonnegativity of the derivative.
 
 \subsection{A note on meta logic versus object logic}
 
@@ -140,8 +150,10 @@ Should you find that the \sturm\ method fails to prove a statement that it shoul
 \begin{enumerate}
 \item ensure that your function is indeed a \emph{real} polynomial. Add an appropriate type annotation if necessary.
 \item use a computer algebra system to ensure that the property is indeed correct
-\item if this did not help, send the statement in question to \texttt{eberlm@in.tum.de}; it may be a bug in the preprocessing of the proof method.
+\item if this did not help, send the statement in question to \texttt{eberlm@in.tum.de}; it may be a bug in the preprocessing of the proof method or
 \end{enumerate}
+
+Note: in case of monotonicity and nonnegativity, the proof method will output a counterexample if the statement is false. Should proving nonnegativity or monotonicity fail without a counterexample being given, please also report this as a bug.
 
 \end{document}
 
