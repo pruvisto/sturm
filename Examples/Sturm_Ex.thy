@@ -27,6 +27,9 @@ lemma "mono (\<lambda>x::real. x^3)" by sturm
 
 lemma "strict_mono (\<lambda>x::real. x^7/7 - 14/5*x^5 + 3*x^4 + 49/3*x^3 - 42*x^2 + 36*x - 13)" by sturm
 
+lemma "\<exists>x::real. -x*x + 9 - 4 > 0" by sturm
+lemma "\<exists>x::real. -x*x + 9 - 4 \<ge> 0" by sturm
+
 schematic_lemma "card {x::real. x^3 + x = 2*x^2 \<or> x^3 - 6*x^2 + 11*x = 6} = ?n" by sturm
 
 
@@ -36,6 +39,9 @@ lemma
   by sturm
 
 lemma "\<forall>x::real. x*x \<noteq> 0 \<or> x*x - 1 \<noteq> 2*x" by sturm
+lemma "\<exists>x::real. x*x - 9 = 0 \<and> x+3 = 0" by sturm
+
+lemma "\<bar>x - 3 :: real\<bar> < 2 \<Longrightarrow> 5 + 6*x - x^2 > 0" by sturm
 
 lemma "(x::real)*x+1 \<noteq> 0 \<and> (x^2+1)*(x^2+2) \<noteq> 0" by sturm
 
@@ -56,6 +62,17 @@ lemma "x \<ge> -2 \<Longrightarrow> x \<le> 2 \<Longrightarrow> 1296 - 3528*x^2 
 lemma "x > -2 \<Longrightarrow> x \<le> 2 \<Longrightarrow> 1296 - 3528*x^2 + 3409*x^4 - 1444*x^6 + 294*x^8 - 28*x^10 + x^12 \<ge> (0 :: real)" by sturm
 lemma "x \<ge> -2 \<Longrightarrow> x < 2 \<Longrightarrow> 1296 - 3528*x^2 + 3409*x^4 - 1444*x^6 + 294*x^8 - 28*x^10 + x^12 \<ge> (0 :: real)" by sturm
 lemma "x > -2 \<Longrightarrow> x < 2 \<Longrightarrow> 1296 - 3528*x^2 + 3409*x^4 - 1444*x^6 + 294*x^8 - 28*x^10 + x^12 \<ge> (0 :: real)" by sturm
+
+lemma "\<exists>x::real. 1 - x*x > 0" by sturm
+lemma "\<exists>x::real \<ge> -1. 1 - x*x > 0" by sturm
+lemma "\<exists>x::real > -1. 1 - x*x > 0" by sturm
+lemma "\<exists>x::real < 1. 1 - x*x > 0" by sturm
+lemma "\<exists>x::real \<le> 1. 1 - x*x > 0" by sturm
+lemma "\<exists>x::real. x \<ge> -1 \<and> x \<le> 1 \<and> 1 - x*x > 0" by sturm
+lemma "\<exists>x::real. x > -1 \<and> x \<le> 1 \<and> 1 - x*x > 0" by sturm
+lemma "\<exists>x::real. x \<ge> -1 \<and> x < 1 \<and> 1 - x*x > 0" by sturm
+lemma "\<exists>x::real. x > -1 \<and> x < 1 \<and> 1 - x*x > 0" by sturm
+lemma "\<exists>x::real. x \<ge> 0 \<and> x \<le> 0 \<and> 1 - x*x > 0" by sturm
 
 
 text{*3 examples related to continued fraction approximants to exp: LCP*}

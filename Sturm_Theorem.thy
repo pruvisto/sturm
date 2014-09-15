@@ -196,7 +196,6 @@ next
       by (clarsimp, rename_tac j, case_tac "j = Suc (Suc i)", simp_all)
 qed
 
-
 text {* 
   This function splits the sign list of a Sturm sequence at a 
   position @{term x} that is not a root of @{term p} into a 

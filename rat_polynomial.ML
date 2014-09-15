@@ -174,14 +174,22 @@ fun mk_rat_number (a,1) = HOLogic.mk_number @{typ "real"} a
 
 (* Destructors for rational numbers / polynomials *)
 
+fun dest_num x = 
+  case x of 
+    Const ("Code_Numeral.int_of_integer", _) $ x => dest_num x
+  | _ => HOLogic.dest_number x
+            handle TERM t => let val _ = tracing (@{make_string} x) in raise TERM t end;
+
 fun dest_rat_number t =
   case t of 
     (Const ("Fields.inverse_class.divide",_)) $ a $ b
-      => ratsimp (snd (HOLogic.dest_number a), snd (HOLogic.dest_number b))
-  | (Const ("Rat.field_char_0_class.of_rat",_)) $ (Const ("Rat.Frct", _) $ 
-        (Const ("Product_Type.Pair", _) $ a $ b))
-      => ratsimp (snd (HOLogic.dest_number a), snd (HOLogic.dest_number b))
-  | _ => (snd (HOLogic.dest_number t), 1);
+      => ratsimp (snd (dest_num a), snd (dest_num b))
+  | (Const ("Groups.uminus_class.uminus",_)) $ a 
+       => (case dest_rat_number a of (b,c) => (~b,c))
+  | (Const ("Rat.field_char_0_class.of_rat",_)) $ a => dest_rat_number a
+  |  (Const ("Rat.Frct", _) $ (Const ("Product_Type.Pair", _) $ a $ b))
+      => ratsimp (snd (dest_num a), snd (dest_num b))
+  | _ => (snd (dest_num t), 1);
 
 fun dest_poly p =
   let fun dest_poly' p acc =

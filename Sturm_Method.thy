@@ -2,7 +2,7 @@ header {* The ``sturm'' proof method *}
 
 (* Author: Manuel Eberl <eberlm@in.tum.de> *)
 theory Sturm_Method
-imports Sturm_Theorem Poly_Monotonicity
+imports Sturm_Theorem Poly_Monotonicity "~~/src/HOL/Library/Code_Target_Numeral"
 begin
 
 subsection {* Preliminary lemmas *}
@@ -879,6 +879,66 @@ lemma sturm_nonneg_between_less_lessI:
   by (drule sturm_nonneg_between_leq_leqI) auto
 
 
+text {* 
+  Note that the above_geq / below_leq versions imply the above_greater / below_less versions.
+  We can just shift the witnesses to the left / right by some epsilon. *)
+*}
+definition sturm_not_nonneg_witness :: "real poly \<Rightarrow> real \<Rightarrow> bool" where
+  "sturm_not_nonneg_witness p x \<longleftrightarrow> poly p x < 0"
+
+definition sturm_not_nonneg_witness_above :: "real poly \<Rightarrow> real \<Rightarrow> real \<Rightarrow> bool" where
+  "sturm_not_nonneg_witness_above p x a \<longleftrightarrow> x > a \<and> poly p x < 0"
+
+definition sturm_not_nonneg_witness_below :: "real poly \<Rightarrow> real \<Rightarrow> real \<Rightarrow> bool" where
+  "sturm_not_nonneg_witness_below p x a \<longleftrightarrow> x < a \<and> poly p x < 0"
+
+definition sturm_not_nonneg_witness_between :: "real poly \<Rightarrow> real \<Rightarrow> real \<Rightarrow> real \<Rightarrow> bool" where
+  "sturm_not_nonneg_witness_between p x a b \<longleftrightarrow> x > a \<and> x < b \<and> poly p x < 0"
+
+text {* 
+  This is required so that the case of a = b also works. Shifting by an epsilon is not possible 
+  in this case. 
+*}
+definition sturm_not_nonneg_witness_between_leq_leq :: "real poly \<Rightarrow> real \<Rightarrow> real \<Rightarrow> real \<Rightarrow> bool" where
+  "sturm_not_nonneg_witness_between_leq_leq p x a b \<longleftrightarrow> x \<ge> a \<and> x \<le> b \<and> poly p x < 0"
+
+lemma sturm_not_nonnegI:
+    "sturm_not_nonneg_witness p x \<Longrightarrow> \<not>(\<forall>x::real. poly p x \<ge> 0)"
+  by (auto simp: not_le sturm_not_nonneg_witness_def)
+
+lemma sturm_not_nonneg_above_geqI:
+    "sturm_not_nonneg_witness_above p x a \<Longrightarrow> \<not>(\<forall>x::real \<ge> a. poly p x \<ge> 0)"
+  by (auto simp: not_le sturm_not_nonneg_witness_above_def intro!: exI[of _ x])
+
+lemma sturm_not_nonneg_above_greaterI:
+    "sturm_not_nonneg_witness_above p x a \<Longrightarrow> \<not>(\<forall>x::real > a. poly p x \<ge> 0)"
+  by (auto simp: not_le sturm_not_nonneg_witness_above_def intro!: exI[of _ x])
+
+lemma sturm_not_nonneg_below_leqI:
+    "sturm_not_nonneg_witness_below p x a \<Longrightarrow> \<not>(\<forall>x::real \<le> a. poly p x \<ge> 0)"
+  by (auto simp: not_le sturm_not_nonneg_witness_below_def intro!: exI[of _ x])
+
+lemma sturm_not_nonneg_below_lessI:
+    "sturm_not_nonneg_witness_below p x a \<Longrightarrow> \<not>(\<forall>x::real < a. poly p x \<ge> 0)"
+  by (auto simp: not_le sturm_not_nonneg_witness_below_def intro!: exI[of _ x])
+
+lemma sturm_not_nonneg_between_less_lessI:
+    "sturm_not_nonneg_witness_between p x a b \<Longrightarrow> \<not>(\<forall>x::real. x > a \<and> x < b \<longrightarrow> poly p x \<ge> 0)" 
+  by (auto simp: not_le sturm_not_nonneg_witness_between_def intro!: exI[of _ x])
+
+lemma sturm_not_nonneg_between_less_leqI:
+    "sturm_not_nonneg_witness_between p x a b \<Longrightarrow> \<not>(\<forall>x::real. x > a \<and> x \<le> b \<longrightarrow> poly p x \<ge> 0)" 
+  by (auto simp: not_le sturm_not_nonneg_witness_between_def intro!: exI[of _ x])
+
+lemma sturm_not_nonneg_between_leq_lessI:
+    "sturm_not_nonneg_witness_between p x a b \<Longrightarrow> \<not>(\<forall>x::real. x \<ge> a \<and> x < b \<longrightarrow> poly p x \<ge> 0)" 
+  by (auto simp: not_le sturm_not_nonneg_witness_between_def intro!: exI[of _ x])
+
+lemma sturm_not_nonneg_between_leq_leqI:
+    "sturm_not_nonneg_witness_between_leq_leq p x a b \<Longrightarrow> \<not>(\<forall>x::real. x \<ge> a \<and> x \<le> b \<longrightarrow> poly p x \<ge> 0)" 
+  by (auto simp: not_le sturm_not_nonneg_witness_between_leq_leq_def intro!: exI[of _ x])
+
+
 definition "sturm_mono_witness (p :: real poly) xs \<equiv>
                 sturm_nonneg_witness (pderiv p) xs"
 
@@ -914,6 +974,11 @@ lemmas sturm_nonneg_intros = sturm_nonnegI sturm_nonneg_above_geqI sturm_nonneg_
     sturm_nonneg_between_leq_lessI sturm_nonneg_between_less_leqI sturm_nonneg_between_less_lessI
     sturm_monoI sturm_strict_monoI
 
+lemmas sturm_not_nonneg_intros = sturm_not_nonnegI sturm_not_nonneg_above_geqI 
+    sturm_not_nonneg_above_greaterI sturm_not_nonneg_below_leqI sturm_not_nonneg_below_lessI
+    sturm_not_nonneg_between_leq_leqI sturm_not_nonneg_between_leq_lessI 
+    sturm_not_nonneg_between_less_leqI sturm_not_nonneg_between_less_lessI 
+
 
 
 subsection {* Reification *}
@@ -931,9 +996,14 @@ lemma sturm_id_PR_prio0:
   "(\<forall>x::real. f x < g x) = (\<forall>x::real. PR_TAG (\<lambda>x. f x < g x) x)"
   "(\<forall>x::real. f x \<le> g x) = (\<forall>x::real. PR_TAG (\<lambda>x. f x \<le> g x) x)"
   "(\<forall>x::real. P x) = (\<forall>x::real. \<not>(PR_TAG (\<lambda>x. \<not>P x)) x)"
-  by (simp_all add: PR_TAG_def)
+  "(\<exists>x::real. f x < g x) = (\<not>(\<forall>x::real. PR_TAG (\<lambda>x. (f x :: real) \<ge> g x) x))"
+  "(\<exists>x::real. f x \<le> g x) = (\<not>(\<forall>x::real. PR_TAG (\<lambda>x. (f x :: real) > g x) x))"
+  "(\<exists>x::real. P x) = (\<not>(\<forall>x::real. \<not>(PR_TAG (\<lambda>x. P x)) x))"
+  by (simp_all add: PR_TAG_def not_less not_le)
 
 lemma sturm_id_PR_prio1:
+  fixes f :: "real \<Rightarrow> real"
+  shows
   "{x::real. x < a \<and> P x} = {x::real. x < a \<and> (PR_TAG P) x}"
   "{x::real. x \<le> a \<and> P x} = {x::real. x \<le> a \<and> (PR_TAG P) x}"
   "{x::real. x \<ge> b \<and> P x} = {x::real. x \<ge> b \<and> (PR_TAG P) x}"
@@ -950,9 +1020,24 @@ lemma sturm_id_PR_prio1:
   "(\<forall>x::real > a. P x) = (\<forall>x::real > a. \<not>(PR_TAG (\<lambda>x. \<not>P x)) x)"
   "(\<forall>x::real \<le> a. P x) = (\<forall>x::real \<le> a. \<not>(PR_TAG (\<lambda>x. \<not>P x)) x)"
   "(\<forall>x::real \<ge> a. P x) = (\<forall>x::real \<ge> a. \<not>(PR_TAG (\<lambda>x. \<not>P x)) x)"
-  by (simp_all add: PR_TAG_def)
+
+  "(\<exists>x::real < a. f x < g x) = (\<not>(\<forall>x::real < a. PR_TAG (\<lambda>x. f x \<ge> g x) x))"
+  "(\<exists>x::real \<le> a. f x < g x) = (\<not>(\<forall>x::real \<le> a. PR_TAG (\<lambda>x. f x \<ge> g x) x))"
+  "(\<exists>x::real > a. f x < g x) = (\<not>(\<forall>x::real > a. PR_TAG (\<lambda>x. f x \<ge> g x) x))"
+  "(\<exists>x::real \<ge> a. f x < g x) = (\<not>(\<forall>x::real \<ge> a. PR_TAG (\<lambda>x. f x \<ge> g x) x))"
+  "(\<exists>x::real < a. f x \<le> g x) = (\<not>(\<forall>x::real < a. PR_TAG (\<lambda>x. f x > g x) x))"
+  "(\<exists>x::real \<le> a. f x \<le> g x) = (\<not>(\<forall>x::real \<le> a. PR_TAG (\<lambda>x. f x > g x) x))"
+  "(\<exists>x::real > a. f x \<le> g x) = (\<not>(\<forall>x::real > a. PR_TAG (\<lambda>x. f x > g x) x))"
+  "(\<exists>x::real \<ge> a. f x \<le> g x) = (\<not>(\<forall>x::real \<ge> a. PR_TAG (\<lambda>x. f x > g x) x))"
+  "(\<exists>x::real < a. P x) = (\<not>(\<forall>x::real < a. \<not>(PR_TAG (\<lambda>x. P x)) x))"
+  "(\<exists>x::real > a. P x) = (\<not>(\<forall>x::real > a. \<not>(PR_TAG (\<lambda>x. P x)) x))"
+  "(\<exists>x::real \<le> a. P x) = (\<not>(\<forall>x::real \<le> a. \<not>(PR_TAG (\<lambda>x. P x)) x))"
+  "(\<exists>x::real \<ge> a. P x) = (\<not>(\<forall>x::real \<ge> a. \<not>(PR_TAG (\<lambda>x. P x)) x))"
+  by (simp_all add: PR_TAG_def not_less not_le)
 
 lemma sturm_id_PR_prio2:
+  fixes f :: "real \<Rightarrow> real"
+  shows
   "{x::real. x > a \<and> x \<le> b \<and> P x} = 
        {x::real. x > a \<and> x \<le> b \<and> PR_TAG P x}"
   "{x::real. x \<ge> a \<and> x \<le> b \<and> P x} = 
@@ -985,8 +1070,31 @@ lemma sturm_id_PR_prio2:
        (\<forall>x::real. a \<le> x \<and> x < b \<longrightarrow> \<not>(PR_TAG (\<lambda>x. \<not>P x)) x)"
   "(\<forall>x::real. a < x \<and> x < b \<longrightarrow> P x) = 
        (\<forall>x::real. a < x \<and> x < b \<longrightarrow> \<not>(PR_TAG (\<lambda>x. \<not>P x)) x)"
-  by (simp_all add: PR_TAG_def)
-
+  "(\<exists>x::real. a < x \<and> x \<le> b \<and> f x < g x) = 
+       (\<not>(\<forall>x::real. a < x \<and> x \<le> b \<longrightarrow> PR_TAG (\<lambda>x. f x \<ge> g x) x))"
+  "(\<exists>x::real. a \<le> x \<and> x \<le> b \<and> f x < g x) = 
+       (\<not>(\<forall>x::real. a \<le> x \<and> x \<le> b \<longrightarrow> PR_TAG (\<lambda>x. f x \<ge> g x) x))"
+  "(\<exists>x::real. a < x \<and> x < b \<and> f x < g x) = 
+       (\<not>(\<forall>x::real. a < x \<and> x < b \<longrightarrow> PR_TAG (\<lambda>x. f x \<ge> g x) x))"
+  "(\<exists>x::real. a \<le> x \<and> x < b \<and> f x < g x) = 
+       (\<not>(\<forall>x::real. a \<le> x \<and> x < b \<longrightarrow> PR_TAG (\<lambda>x. f x \<ge> g x) x))"
+  "(\<exists>x::real. a < x \<and> x \<le> b \<and> f x \<le> g x) = 
+       (\<not>(\<forall>x::real. a < x \<and> x \<le> b \<longrightarrow> PR_TAG (\<lambda>x. f x > g x) x))"
+  "(\<exists>x::real. a \<le> x \<and> x \<le> b \<and> f x \<le> g x) = 
+       (\<not>(\<forall>x::real. a \<le> x \<and> x \<le> b \<longrightarrow> PR_TAG (\<lambda>x. f x > g x) x))"
+  "(\<exists>x::real. a < x \<and> x < b \<and> f x \<le> g x) = 
+       (\<not>(\<forall>x::real. a < x \<and> x < b \<longrightarrow> PR_TAG (\<lambda>x. f x > g x) x))"
+  "(\<exists>x::real. a \<le> x \<and> x < b \<and> f x \<le> g x) = 
+       (\<not>(\<forall>x::real. a \<le> x \<and> x < b \<longrightarrow> PR_TAG (\<lambda>x. f x > g x) x))"
+  "(\<exists>x::real. a < x \<and> x \<le> b \<and> P x) = 
+       (\<not>(\<forall>x::real. a < x \<and> x \<le> b \<longrightarrow> \<not>(PR_TAG (\<lambda>x. P x)) x))"
+  "(\<exists>x::real. a \<le> x \<and> x \<le> b \<and> P x) = 
+       (\<not>(\<forall>x::real. a \<le> x \<and> x \<le> b \<longrightarrow> \<not>(PR_TAG (\<lambda>x. P x)) x))"
+  "(\<exists>x::real. a \<le> x \<and> x < b \<and> P x) = 
+       (\<not>(\<forall>x::real. a \<le> x \<and> x < b \<longrightarrow> \<not>(PR_TAG (\<lambda>x. P x)) x))"
+  "(\<exists>x::real. a < x \<and> x < b \<and> P x) = 
+       (\<not>(\<forall>x::real. a < x \<and> x < b \<longrightarrow> \<not>(PR_TAG (\<lambda>x. P x)) x))"
+  by (simp_all add: PR_TAG_def not_less not_le)
 
 lemma sturm_id_PR_prio3:
   "mono P = mono (PR_TAG P)"
@@ -1071,6 +1179,21 @@ using assms by (simp_all add: PR_TAG_def field_simps poly_monom power_add)
 
 lemma sturm_meta_spec: "(\<And>x::real. P x) \<Longrightarrow> P x" by simp
 lemma sturm_imp_conv: 
+  "(\<forall>x\<in>A. P x) \<longleftrightarrow> (\<forall>x. x \<in> A \<longrightarrow> P x)"
+  "x \<in> {a..} \<longleftrightarrow> x \<ge> a"
+  "x \<in> {a<..} \<longleftrightarrow> x > a"
+  "x \<in> {..b} \<longleftrightarrow> x \<le> b"
+  "x \<in> {..<b} \<longleftrightarrow> x < b"
+  "x \<in> {a..b} \<longleftrightarrow> x \<ge> a \<and> x \<le> b"
+  "x \<in> {a<..b} \<longleftrightarrow> x > a \<and> x \<le> b"
+  "x \<in> {a..<b} \<longleftrightarrow> x \<ge> a \<and> x < b"
+  "x \<in> {a<..<b} \<longleftrightarrow> x > a \<and> x < b"
+  "(abs x < a) \<longleftrightarrow> (-a < x \<and> x < (a::real))"
+  "(abs (x - a) < b) \<longleftrightarrow> (a - b < x \<and> x < (a::real) + b)"
+  "(abs (a - x) < b) \<longleftrightarrow> (a - b < x \<and> x < (a::real) + b)"
+  "(abs x \<le> a) \<longleftrightarrow> (-a \<le> x \<and> x \<le> (a::real))"
+  "(abs (x - a) \<le> b) \<longleftrightarrow> (a - b \<le> x \<and> x \<le> (a::real) + b)"
+  "(abs (a - x) \<le> b) \<longleftrightarrow> (a - b \<le> x \<and> x \<le> (a::real) + b)"
   "(a < x \<longrightarrow> x < b \<longrightarrow> c) \<longleftrightarrow> (a < x \<and> x < b \<longrightarrow> c)"
   "(a \<le> x \<longrightarrow> x < b \<longrightarrow> c) \<longleftrightarrow> (a \<le> x \<and> x < b \<longrightarrow> c)"
   "(a < x \<longrightarrow> x \<le> b \<longrightarrow> c) \<longleftrightarrow> (a < x \<and> x \<le> b \<longrightarrow> c)"
@@ -1079,7 +1202,7 @@ lemma sturm_imp_conv:
   "(x < b \<longrightarrow> a \<le> x \<longrightarrow> c) \<longleftrightarrow> (a \<le> x \<and> x < b \<longrightarrow> c)"
   "(x \<le> b \<longrightarrow> a < x \<longrightarrow> c) \<longleftrightarrow> (a < x \<and> x \<le> b \<longrightarrow> c)"
   "(x \<le> b \<longrightarrow> a \<le> x \<longrightarrow> c) \<longleftrightarrow> (a \<le> x \<and> x \<le> b \<longrightarrow> c)"
-  by auto
+  by (auto simp: abs_less_iff abs_le_iff)
 
 
 subsection {* Setup for the ``sturm'' method *}

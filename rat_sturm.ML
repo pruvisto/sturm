@@ -18,6 +18,11 @@ sig
   val poly_nonneg_witness_below : term -> term -> term option
   val poly_nonneg_witness : term -> term option
   val poly_mono_witness : term -> bool -> term option
+
+  val poly_not_nonneg_witness_between : term -> term * term -> term option
+  val poly_not_nonneg_witness_above : term -> term -> term option
+  val poly_not_nonneg_witness_below : term -> term -> term option
+  val poly_not_nonneg_witness : term -> term option
 end;
 
 structure Rat_Sturm : RAT_STURM =
@@ -228,6 +233,57 @@ fun poly_mono_witness p strict =
       else
         NONE
   end;
+
+fun fix_witness_left p a b w = if rless a w then w else 
+  let val sc = sturmd p
+      fun fix_witness' b = 
+        if sturm_count_between sc (w,b) = 0 then b
+            else fix_witness' (rmul (radd b w) (1,2))
+  in  fix_witness' (rmul (radd a b) (1,2))
+  end;
+
+fun fix_witness_right p a b w = if rless w b then w else 
+  let val sc = sturmd p
+      fun fix_witness' a = 
+        if sturm_count_between sc (a,w) = 0 then a
+            else fix_witness' (rmul (radd a w) (1,2))
+  in  fix_witness' (rmul (radd a b) (1,2))
+  end;
+
+fun fix_witness p a b w = fix_witness_right p a b (fix_witness_left p a b w)
+
+fun poly_not_nonneg_witness p = 
+  let val p = dest_poly' p
+      val w = filter (fn x => rsign (peval p x) < 0) (isolate_roots p)
+  in  case w of [] => NONE
+              | x :: _ => SOME (mk_rat_number x)
+  end;
+
+fun poly_not_nonneg_witness_above p a = 
+  let val p = dest_poly' p
+      val a = dest_rat_number a
+      val w = filter (fn x => rsign (peval p x) < 0) (isolate_roots_greater p a)
+  in  case w of [] => NONE
+              | x :: _ => SOME (mk_rat_number (fix_witness_left p a (radd a (1,1)) x))
+  end;
+
+fun poly_not_nonneg_witness_below p a = 
+  let val p = dest_poly' p
+      val a = dest_rat_number a
+      val w = filter (fn x => rsign (peval p x) < 0) (isolate_roots_leq p a)
+  in  case w of [] => NONE
+              | x :: _ => SOME (mk_rat_number (fix_witness_right p (rsub a (1,1)) a x))
+  end;
+
+
+fun poly_not_nonneg_witness_between p (a,b) = 
+  let val p = dest_poly' p
+      val (a, b) = (dest_rat_number a, dest_rat_number b)
+      val w = filter (fn x => rsign (peval p x) < 0) (isolate_roots_between p (a,b))
+  in  case w of [] => NONE
+              | x :: _ => SOME (mk_rat_number (fix_witness p a b x))
+  end;
+
 
 end;
 
