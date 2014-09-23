@@ -17,7 +17,16 @@ sig
   val poly_nonneg_witness_above : term -> term -> term option
   val poly_nonneg_witness_below : term -> term -> term option
   val poly_nonneg_witness : term -> term option
+
   val poly_mono_witness : term -> bool -> term option
+  val poly_mono_witness_above : term -> term -> bool -> term option
+  val poly_mono_witness_below : term -> term -> bool -> term option
+  val poly_mono_witness_between : term -> term * term -> bool -> term option
+
+  val poly_inj_witness : term -> term option
+  val poly_inj_witness_above : term -> term -> term option
+  val poly_inj_witness_below : term -> term -> term option
+  val poly_inj_witness_between : term -> term * term -> term option
 
   val poly_not_nonneg_witness_between : term -> term * term -> term option
   val poly_not_nonneg_witness_above : term -> term -> term option
@@ -218,6 +227,8 @@ fun poly_nonneg_witness_between p (a,b) =
         NONE
   end;
 
+
+
 fun poly_mono_witness p strict = 
   let val p = dest_poly' p
       val p' = pderiv p
@@ -233,6 +244,107 @@ fun poly_mono_witness p strict =
       else
         NONE
   end;
+
+fun poly_mono_witness_above p a strict = 
+  let val p = dest_poly' p
+      val p' = pderiv p
+      val a = dest_rat_number a
+      val w = isolate_roots_greater p' a
+  in  if strict andalso List.null (pnorm p') then
+        let val _ = Output.urgent_message ("Failed to show strict monotonicity of p = " ^ 
+                                 "[:" ^ String.concatWith ", " (map rat_to_string p) ^ ":]" ^
+                                 "; polynomial is constant.")
+        in NONE
+        end
+      else if check_witness w p p' true strict then
+        SOME (HOLogic.mk_list @{typ "real"}  (map mk_rat_number w))
+      else
+        NONE
+  end;
+
+fun poly_mono_witness_below p a strict = 
+  let val p = dest_poly' p
+      val p' = pderiv p
+      val a = dest_rat_number a
+      val w = isolate_roots_leq p' a
+  in  if strict andalso List.null (pnorm p') then
+        let val _ = Output.urgent_message ("Failed to show strict monotonicity of p = " ^ 
+                                 "[:" ^ String.concatWith ", " (map rat_to_string p) ^ ":]" ^
+                                 "; polynomial is constant.")
+        in NONE
+        end
+      else if check_witness w p p' true strict then
+        SOME (HOLogic.mk_list @{typ "real"}  (map mk_rat_number w))
+      else
+        NONE
+  end;
+
+fun poly_mono_witness_between p (a,b) strict = 
+  let val p = dest_poly' p
+      val p' = pderiv p
+      val (a,b) = (dest_rat_number a, dest_rat_number b)
+      val w = isolate_roots_between p' (a,b)
+  in  if strict andalso List.null (pnorm p') then
+        let val _ = Output.urgent_message ("Failed to show strict monotonicity of p = " ^ 
+                                 "[:" ^ String.concatWith ", " (map rat_to_string p) ^ ":]" ^
+                                 "; polynomial is constant.")
+        in NONE
+        end
+      else if check_witness w p p' true strict then
+        SOME (HOLogic.mk_list @{typ "real"}  (map mk_rat_number w))
+      else
+        NONE
+  end;
+
+
+
+fun poly_inj_witness p = 
+  let val p = dest_poly' p
+      val p' = pderiv p
+      val w = isolate_roots p'
+  in  if List.null (filter (fn y => rsign y < 0) (map (fn x => peval p' x) w)) orelse
+         List.null (filter (fn y => rsign y > 0) (map (fn x => peval p' x) w)) then
+        SOME (HOLogic.mk_list @{typ "real"}  (map mk_rat_number w))
+      else
+        NONE
+  end;
+
+fun poly_inj_witness_above p a = 
+  let val p = dest_poly' p
+      val p' = pderiv p
+      val a = dest_rat_number a
+      val w = isolate_roots_greater p' a
+  in  if List.null (filter (fn y => rsign y < 0) (map (fn x => peval p' x) w)) orelse
+         List.null (filter (fn y => rsign y > 0) (map (fn x => peval p' x) w)) then
+        SOME (HOLogic.mk_list @{typ "real"}  (map mk_rat_number w))
+      else
+        NONE
+  end;
+
+fun poly_inj_witness_below p a = 
+  let val p = dest_poly' p
+      val p' = pderiv p
+      val a = dest_rat_number a
+      val w = isolate_roots_leq p' a
+  in  if List.null (filter (fn y => rsign y < 0) (map (fn x => peval p' x) w)) orelse
+         List.null (filter (fn y => rsign y > 0) (map (fn x => peval p' x) w)) then
+        SOME (HOLogic.mk_list @{typ "real"}  (map mk_rat_number w))
+      else
+        NONE
+  end;
+
+fun poly_inj_witness_between p (a,b) = 
+  let val p = dest_poly' p
+      val p' = pderiv p
+      val (a, b) = (dest_rat_number a, dest_rat_number b)
+      val w = isolate_roots_between p' (a,b)
+  in  if List.null (filter (fn y => rsign y < 0) (map (fn x => peval p' x) w)) orelse
+         List.null (filter (fn y => rsign y > 0) (map (fn x => peval p' x) w)) then
+        SOME (HOLogic.mk_list @{typ "real"}  (map mk_rat_number w))
+      else
+        NONE
+  end;
+
 
 fun fix_witness_left p a b w = if rless a w then w else 
   let val sc = sturmd p

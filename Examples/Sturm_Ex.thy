@@ -24,6 +24,10 @@ schematic_lemma A:
 lemma "card {x::real. x^3 + x = 2*x^2 \<and> x^3 - 6*x^2 + 11*x = 6} = 1"  by sturm
 
 lemma "mono (\<lambda>x::real. x^3)" by sturm
+lemma "inj (\<lambda>x::real. x^3)" by sturm
+lemma "\<forall>(x::real) y. x \<noteq> y \<longrightarrow> x^3 \<noteq> y^3" by sturm
+lemma "(x::real) < y \<Longrightarrow> -(x^3) > -(y^3)" by sturm
+
 
 lemma "strict_mono (\<lambda>x::real. x^7/7 - 14/5*x^5 + 3*x^4 + 49/3*x^3 - 42*x^2 + 36*x - 13)" by sturm
 
@@ -86,5 +90,15 @@ by sturm
 
 schematic_lemma "card {x::real. x^7 + 56*x^6 + 1512*x^5 + 25200*x^4 + 277200*x^3 + 1995840*x^2 + 8648640*x = -17297280} = ?n" 
 by sturm
+
+lemma "inj_on (\<lambda>x::real. x^2) {0..1}" by sturm
+lemma "inj_on (\<lambda>x::real. x^2) {0<..1}" by sturm
+lemma "inj_on (\<lambda>x::real. x^2) {0..<1}" by sturm
+lemma "inj_on (\<lambda>x::real. x^2) {0<..<1}" by sturm
+lemma "inj_on (\<lambda>x::real. x^2) {0..}" by sturm
+lemma "inj_on (\<lambda>x::real. x^2) {0<..}" by sturm
+lemma "inj_on (\<lambda>x::real. x^2) {..0}" by sturm
+lemma "inj_on (\<lambda>x::real. x^2) {..<0}" by sturm
+lemma "inj (\<lambda>x::real. x^3)" by sturm
 
 end

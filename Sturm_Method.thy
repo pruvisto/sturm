@@ -939,21 +939,167 @@ lemma sturm_not_nonneg_between_leq_leqI:
   by (auto simp: not_le sturm_not_nonneg_witness_between_leq_leq_def intro!: exI[of _ x])
 
 
-definition "sturm_mono_witness (p :: real poly) xs \<equiv>
-                sturm_nonneg_witness (pderiv p) xs"
+definition "sturm_mono_witness (p :: real poly) xs \<equiv> sturm_nonneg_witness (pderiv p) xs"
+definition "sturm_mono_witness_above (p :: real poly) xs a \<equiv> sturm_nonneg_witness_above (pderiv p) xs a"
+definition "sturm_mono_witness_below (p :: real poly) xs a \<equiv> sturm_nonneg_witness_below (pderiv p) xs a"
+definition "sturm_mono_witness_between (p :: real poly) xs a b \<equiv> sturm_nonneg_witness_between (pderiv p) xs a b"
 
 lemma sturm_monoI:
     "sturm_mono_witness p xs \<Longrightarrow> mono (poly p)"
   unfolding sturm_mono_witness_def
   by (intro pderiv_ge_0_imp_mono sturm_nonnegI)
+lemma sturm_mono_above_geqI:
+    "sturm_mono_witness_above p xs a \<Longrightarrow> mono_on (poly p) {a..}"
+  unfolding sturm_mono_witness_above_def using sturm_nonneg_above_geqI
+  by (intro pderiv_ge_0_imp_mono_on) simp_all
+lemma sturm_mono_above_greaterI:
+    "sturm_mono_witness_above p xs a \<Longrightarrow> mono_on (poly p) {a<..}"
+  unfolding sturm_mono_witness_above_def using sturm_nonneg_above_greaterI
+  by (intro pderiv_ge_0_imp_mono_on) simp_all
+lemma sturm_mono_below_leqI:
+    "sturm_mono_witness_below p xs a \<Longrightarrow> mono_on (poly p) {..a}"
+  unfolding sturm_mono_witness_below_def using sturm_nonneg_below_leqI
+  by (intro pderiv_ge_0_imp_mono_on) simp_all
+lemma sturm_mono_below_lessI:
+    "sturm_mono_witness_below p xs a \<Longrightarrow> mono_on (poly p) {..<a}"
+  unfolding sturm_mono_witness_below_def using sturm_nonneg_below_lessI
+  by (intro pderiv_ge_0_imp_mono_on) simp_all
+lemma sturm_mono_between_leq_leqI:
+    "sturm_mono_witness_between p xs a b \<Longrightarrow> mono_on (poly p) {a..b}"
+  unfolding sturm_mono_witness_between_def using sturm_nonneg_between_leq_leqI
+  by (intro pderiv_ge_0_imp_mono_on) simp_all
+lemma sturm_mono_between_less_leqI:
+    "sturm_mono_witness_between p xs a b \<Longrightarrow> mono_on (poly p) {a<..b}"
+  unfolding sturm_mono_witness_between_def using sturm_nonneg_between_less_leqI
+  by (intro pderiv_ge_0_imp_mono_on) simp_all
+lemma sturm_mono_between_leq_lessI:
+    "sturm_mono_witness_between p xs a b \<Longrightarrow> mono_on (poly p) {a..<b}"
+  unfolding sturm_mono_witness_between_def using sturm_nonneg_between_leq_lessI
+  by (intro pderiv_ge_0_imp_mono_on) simp_all
+lemma sturm_mono_between_less_lessI:
+    "sturm_mono_witness_between p xs a b \<Longrightarrow> mono_on (poly p) {a<..<b}"
+  unfolding sturm_mono_witness_between_def using sturm_nonneg_between_less_lessI
+  by (intro pderiv_ge_0_imp_mono_on) simp_all
+
 
 definition "sturm_strict_mono_witness (p :: real poly) xs \<equiv>
                 let p' = pderiv p in p' \<noteq> 0 \<and> sturm_nonneg_witness p' xs"
+definition "sturm_strict_mono_witness_above (p :: real poly) xs a \<equiv>
+                let p' = pderiv p in p' \<noteq> 0 \<and> sturm_nonneg_witness_above p' xs a"
+definition "sturm_strict_mono_witness_below (p :: real poly) xs a \<equiv>
+                let p' = pderiv p in p' \<noteq> 0 \<and> sturm_nonneg_witness_below p' xs a"
+definition "sturm_strict_mono_witness_between (p :: real poly) xs a b \<equiv>
+                let p' = pderiv p in p' \<noteq> 0 \<and> sturm_nonneg_witness_between p' xs a b"
 
 lemma sturm_strict_monoI:
     "sturm_strict_mono_witness p xs \<Longrightarrow> strict_mono (poly p)"
   unfolding sturm_strict_mono_witness_def
   by (intro pderiv_ge_0_imp_strict_mono sturm_nonnegI) (auto simp: Let_def)
+lemma sturm_strict_mono_above_geqI:
+    "sturm_strict_mono_witness_above p xs a \<Longrightarrow> strict_mono_on (poly p) {a..}"
+  unfolding sturm_strict_mono_witness_above_def using sturm_nonneg_above_geqI
+  by (intro pderiv_ge_0_imp_strict_mono_on) (auto simp add: Let_def)
+lemma sturm_strict_mono_above_greaterI:
+    "sturm_strict_mono_witness_above p xs a \<Longrightarrow> strict_mono_on (poly p) {a<..}"
+  unfolding sturm_strict_mono_witness_above_def using sturm_nonneg_above_greaterI
+  by (intro pderiv_ge_0_imp_strict_mono_on) (auto simp add: Let_def)
+lemma sturm_strict_mono_below_leqI:
+    "sturm_strict_mono_witness_below p xs a \<Longrightarrow> strict_mono_on (poly p) {..a}"
+  unfolding sturm_strict_mono_witness_below_def using sturm_nonneg_below_leqI
+  by (intro pderiv_ge_0_imp_strict_mono_on) (auto simp add: Let_def)
+lemma sturm_strict_mono_below_lessI:
+    "sturm_strict_mono_witness_below p xs a \<Longrightarrow> strict_mono_on (poly p) {..<a}"
+  unfolding sturm_strict_mono_witness_below_def using sturm_nonneg_below_lessI
+  by (intro pderiv_ge_0_imp_strict_mono_on) (auto simp add: Let_def)
+lemma sturm_strict_mono_between_leq_leqI:
+    "sturm_strict_mono_witness_between p xs a b \<Longrightarrow> strict_mono_on (poly p) {a..b}"
+  unfolding sturm_strict_mono_witness_between_def using sturm_nonneg_between_leq_leqI
+  by (intro pderiv_ge_0_imp_strict_mono_on) (auto simp add: Let_def)
+lemma sturm_strict_mono_between_less_leqI:
+    "sturm_strict_mono_witness_between p xs a b \<Longrightarrow> strict_mono_on (poly p) {a<..b}"
+  unfolding sturm_strict_mono_witness_between_def using sturm_nonneg_between_less_leqI
+  by (intro pderiv_ge_0_imp_strict_mono_on) (auto simp add: Let_def)
+lemma sturm_strict_mono_between_leq_lessI:
+    "sturm_strict_mono_witness_between p xs a b \<Longrightarrow> strict_mono_on (poly p) {a..<b}"
+  unfolding sturm_strict_mono_witness_between_def using sturm_nonneg_between_leq_lessI
+  by (intro pderiv_ge_0_imp_strict_mono_on) (auto simp add: Let_def)
+lemma sturm_strict_mono_between_less_lessI:
+    "sturm_strict_mono_witness_between p xs a b \<Longrightarrow> strict_mono_on (poly p) {a<..<b}"
+  unfolding sturm_strict_mono_witness_between_def using sturm_nonneg_between_less_lessI
+  by (intro pderiv_ge_0_imp_strict_mono_on) (auto simp add: Let_def)
+
+
+
+lemma sturm_inj_onI_aux:
+  fixes p :: "real poly"
+  assumes "strict_mono_on (poly p) A \<or> strict_mono_on (poly (-p)) A"
+  shows "inj_on (poly p) A"
+proof (rule inj_onI)
+  fix x y assume "x \<in> A" "y \<in> A" "poly p x = poly p y"
+  with assms show "x = y"
+    by (cases x y rule: linorder_cases) (force dest: strict_mono_onD)+
+qed
+
+definition "sturm_inj_witness (p :: real poly) xs \<equiv>
+               let p' = pderiv p in p' \<noteq> 0 \<and> (sturm_nonneg_witness p' xs \<or> sturm_nonneg_witness (-p') xs)"
+definition "sturm_inj_witness_above (p :: real poly) xs a \<equiv>
+               let p' = pderiv p in p' \<noteq> 0 \<and> 
+                 (sturm_nonneg_witness_above p' xs a \<or> sturm_nonneg_witness_above (-p') xs a)"
+definition "sturm_inj_witness_below (p :: real poly) xs a \<equiv>
+               let p' = pderiv p in p' \<noteq> 0 \<and> 
+                 (sturm_nonneg_witness_below p' xs a \<or> sturm_nonneg_witness_below (-p') xs a)"
+definition "sturm_inj_witness_between (p :: real poly) xs a b \<equiv>
+               let p' = pderiv p in p' \<noteq> 0 \<and> 
+                 (sturm_nonneg_witness_between p' xs a b \<or> sturm_nonneg_witness_between (-p') xs a b)"
+
+lemma sturm_injI:
+  "sturm_inj_witness p xs \<Longrightarrow> inj (poly p)"
+unfolding sturm_inj_witness_def Let_def
+apply (elim disjE conjE)
+apply (rule sturm_inj_onI_aux, rule disjI1, simp, rule sturm_strict_monoI, simp add: sturm_strict_mono_witness_def)
+apply (rule sturm_inj_onI_aux, rule disjI2, simp, rule sturm_strict_monoI, simp add: sturm_strict_mono_witness_def pderiv_minus)
+done
+
+lemma sturm_inj_above_geqI:
+  "sturm_inj_witness_above p xs a \<Longrightarrow> inj_on (poly p) {a..}"
+unfolding sturm_inj_witness_above_def Let_def
+apply (elim disjE conjE)
+apply (rule sturm_inj_onI_aux, rule disjI1, rule sturm_strict_mono_above_geqI, simp add: sturm_strict_mono_witness_above_def)
+apply (rule sturm_inj_onI_aux, rule disjI2, rule sturm_strict_mono_above_geqI, simp add: sturm_strict_mono_witness_above_def pderiv_minus)
+done
+lemma sturm_inj_above_greaterI:
+    "sturm_inj_witness_above p xs a \<Longrightarrow> inj_on (poly p) {a<..}"
+  by (erule subset_inj_on[OF sturm_inj_above_geqI]) auto
+
+lemma sturm_inj_below_leqI:
+  "sturm_inj_witness_below p xs a \<Longrightarrow> inj_on (poly p) {..a}"
+unfolding sturm_inj_witness_below_def Let_def
+apply (elim disjE conjE)
+apply (rule sturm_inj_onI_aux, rule disjI1, rule sturm_strict_mono_below_leqI, simp add: sturm_strict_mono_witness_below_def)
+apply (rule sturm_inj_onI_aux, rule disjI2, rule sturm_strict_mono_below_leqI, simp add: sturm_strict_mono_witness_below_def pderiv_minus)
+done
+lemma sturm_inj_below_lessI:
+    "sturm_inj_witness_below p xs a \<Longrightarrow> inj_on (poly p) {..<a}"
+  by (erule subset_inj_on[OF sturm_inj_below_leqI]) auto
+
+lemma sturm_inj_between_leq_leqI:
+  "sturm_inj_witness_between p xs a b \<Longrightarrow> inj_on (poly p) {a..b}"
+unfolding sturm_inj_witness_between_def Let_def
+apply (elim disjE conjE)
+apply (rule sturm_inj_onI_aux, rule disjI1, rule sturm_strict_mono_between_leq_leqI, simp add: sturm_strict_mono_witness_between_def)
+apply (rule sturm_inj_onI_aux, rule disjI2, rule sturm_strict_mono_between_leq_leqI, simp add: sturm_strict_mono_witness_between_def pderiv_minus)
+done
+lemma sturm_inj_between_less_leqI:
+  "sturm_inj_witness_between p xs a b \<Longrightarrow> inj_on (poly p) {a<..b}"
+  by (erule subset_inj_on[OF sturm_inj_between_leq_leqI]) auto
+lemma sturm_inj_between_leq_lessI:
+  "sturm_inj_witness_between p xs a b \<Longrightarrow> inj_on (poly p) {a..<b}"
+  by (erule subset_inj_on[OF sturm_inj_between_leq_leqI]) auto
+lemma sturm_inj_between_less_lessI:
+  "sturm_inj_witness_between p xs a b \<Longrightarrow> inj_on (poly p) {a<..<b}"
+  by (erule subset_inj_on[OF sturm_inj_between_leq_leqI]) auto
+
+
 
 
 lemmas sturm_card_substs = poly_card_roots poly_card_roots_less_leq 
@@ -972,7 +1118,16 @@ lemmas sturm_prop_substs = poly_no_roots poly_no_roots_less_leq
 lemmas sturm_nonneg_intros = sturm_nonnegI sturm_nonneg_above_geqI sturm_nonneg_above_greaterI
     sturm_nonneg_below_leqI sturm_nonneg_below_lessI sturm_nonneg_between_leq_leqI 
     sturm_nonneg_between_leq_lessI sturm_nonneg_between_less_leqI sturm_nonneg_between_less_lessI
-    sturm_monoI sturm_strict_monoI
+    sturm_monoI sturm_mono_above_geqI sturm_mono_above_greaterI sturm_mono_below_leqI 
+    sturm_mono_below_lessI sturm_mono_between_leq_leqI sturm_mono_between_less_leqI 
+    sturm_mono_between_leq_lessI sturm_mono_between_less_lessI sturm_strict_monoI
+    sturm_strict_mono_above_geqI sturm_strict_mono_above_greaterI sturm_strict_mono_below_leqI
+    sturm_strict_mono_below_lessI sturm_strict_mono_between_leq_leqI 
+    sturm_strict_mono_between_leq_lessI sturm_strict_mono_between_less_leqI
+    sturm_strict_mono_between_less_lessI sturm_injI sturm_inj_above_geqI
+    sturm_inj_above_greaterI sturm_inj_below_leqI sturm_inj_below_lessI
+    sturm_inj_between_leq_leqI sturm_inj_between_leq_lessI sturm_inj_between_less_leqI
+    sturm_inj_between_less_lessI
 
 lemmas sturm_not_nonneg_intros = sturm_not_nonnegI sturm_not_nonneg_above_geqI 
     sturm_not_nonneg_above_greaterI sturm_not_nonneg_below_leqI sturm_not_nonneg_below_lessI
@@ -1097,9 +1252,17 @@ lemma sturm_id_PR_prio2:
   by (simp_all add: PR_TAG_def not_less not_le)
 
 lemma sturm_id_PR_prio3:
-  "mono P = mono (PR_TAG P)"
+  "mono (P :: real \<Rightarrow> real) = mono (PR_TAG P)"
+  "mono_on (P :: real \<Rightarrow> real) = mono_on (PR_TAG P)"
   "strict_mono P = strict_mono (PR_TAG P)"
-  by (simp_all add: PR_TAG_def)
+  "strict_mono_on P = strict_mono_on (PR_TAG P)"
+  "mono_dec P = mono (PR_TAG (\<lambda>x. -P x))"
+  "mono_dec_on P = mono_on (PR_TAG (\<lambda>x. -P x))"
+  "strict_mono_dec P = strict_mono (PR_TAG (\<lambda>x. -P x))"
+  "strict_mono_dec_on P = strict_mono_on (PR_TAG (\<lambda>x. -P x))"
+  "inj_on P = inj_on (PR_TAG P)"
+  by (auto simp: PR_TAG_def mono_dec_mono_conv strict_mono_dec_strict_mono_conv
+                 mono_dec_on_mono_on_conv strict_mono_dec_on_strict_mono_on_conv)
 
 
 lemma PR_TAG_intro_prio0:
@@ -1179,7 +1342,17 @@ using assms by (simp_all add: PR_TAG_def field_simps poly_monom power_add)
 
 lemma sturm_meta_spec: "(\<And>x::real. P x) \<Longrightarrow> P x" by simp
 lemma sturm_imp_conv: 
-  "(\<forall>x\<in>A. P x) \<longleftrightarrow> (\<forall>x. x \<in> A \<longrightarrow> P x)"
+  "(a < x \<longrightarrow> x < b \<longrightarrow> c) \<longleftrightarrow> (a < x \<and> x < b \<longrightarrow> c)"
+  "(a \<le> x \<longrightarrow> x < b \<longrightarrow> c) \<longleftrightarrow> (a \<le> x \<and> x < b \<longrightarrow> c)"
+  "(a < x \<longrightarrow> x \<le> b \<longrightarrow> c) \<longleftrightarrow> (a < x \<and> x \<le> b \<longrightarrow> c)"
+  "(a \<le> x \<longrightarrow> x \<le> b \<longrightarrow> c) \<longleftrightarrow> (a \<le> x \<and> x \<le> b \<longrightarrow> c)"
+  "(x < b \<longrightarrow> a < x \<longrightarrow> c) \<longleftrightarrow> (a < x \<and> x < b \<longrightarrow> c)"
+  "(x < b \<longrightarrow> a \<le> x \<longrightarrow> c) \<longleftrightarrow> (a \<le> x \<and> x < b \<longrightarrow> c)"
+  "(x \<le> b \<longrightarrow> a < x \<longrightarrow> c) \<longleftrightarrow> (a < x \<and> x \<le> b \<longrightarrow> c)"
+  "(x \<le> b \<longrightarrow> a \<le> x \<longrightarrow> c) \<longleftrightarrow> (a \<le> x \<and> x \<le> b \<longrightarrow> c)"
+  by (auto simp: abs_less_iff abs_le_iff)
+
+lemma sturm_preprocess:
   "x \<in> {a..} \<longleftrightarrow> x \<ge> a"
   "x \<in> {a<..} \<longleftrightarrow> x > a"
   "x \<in> {..b} \<longleftrightarrow> x \<le> b"
@@ -1194,16 +1367,20 @@ lemma sturm_imp_conv:
   "(abs x \<le> a) \<longleftrightarrow> (-a \<le> x \<and> x \<le> (a::real))"
   "(abs (x - a) \<le> b) \<longleftrightarrow> (a - b \<le> x \<and> x \<le> (a::real) + b)"
   "(abs (a - x) \<le> b) \<longleftrightarrow> (a - b \<le> x \<and> x \<le> (a::real) + b)"
-  "(a < x \<longrightarrow> x < b \<longrightarrow> c) \<longleftrightarrow> (a < x \<and> x < b \<longrightarrow> c)"
-  "(a \<le> x \<longrightarrow> x < b \<longrightarrow> c) \<longleftrightarrow> (a \<le> x \<and> x < b \<longrightarrow> c)"
-  "(a < x \<longrightarrow> x \<le> b \<longrightarrow> c) \<longleftrightarrow> (a < x \<and> x \<le> b \<longrightarrow> c)"
-  "(a \<le> x \<longrightarrow> x \<le> b \<longrightarrow> c) \<longleftrightarrow> (a \<le> x \<and> x \<le> b \<longrightarrow> c)"
-  "(x < b \<longrightarrow> a < x \<longrightarrow> c) \<longleftrightarrow> (a < x \<and> x < b \<longrightarrow> c)"
-  "(x < b \<longrightarrow> a \<le> x \<longrightarrow> c) \<longleftrightarrow> (a \<le> x \<and> x < b \<longrightarrow> c)"
-  "(x \<le> b \<longrightarrow> a < x \<longrightarrow> c) \<longleftrightarrow> (a < x \<and> x \<le> b \<longrightarrow> c)"
-  "(x \<le> b \<longrightarrow> a \<le> x \<longrightarrow> c) \<longleftrightarrow> (a \<le> x \<and> x \<le> b \<longrightarrow> c)"
-  by (auto simp: abs_less_iff abs_le_iff)
+  "(\<forall>x\<in>A. P x) \<longleftrightarrow> (\<forall>x. x \<in> A \<longrightarrow> P x)"
+  "(\<forall>y x. x \<le> y \<longrightarrow> Q x y) \<longleftrightarrow> (\<forall>x y. x \<le> y \<longrightarrow> Q x y)"
+  "(\<forall>y x. x < y \<longrightarrow> Q x y) \<longleftrightarrow> (\<forall>x y. x < y \<longrightarrow> Q x y)"
+  "(\<forall>x y. x \<noteq> y \<longrightarrow> f x \<noteq> f y) \<longleftrightarrow> inj f"
+  "(\<forall>x y. x \<le> y \<longrightarrow> f x \<le> f y) \<longleftrightarrow> mono f"
+  "(\<forall>x y. x < y \<longrightarrow> f x < f y) \<longleftrightarrow> strict_mono f"
+  "(\<forall>x y. x \<le> y \<longrightarrow> f x \<ge> f y) \<longleftrightarrow> mono_dec f"
+  "(\<forall>x y. x < y \<longrightarrow> f x > f y) \<longleftrightarrow> strict_mono_dec f"
+  by (auto simp: mono_def strict_mono_def mono_dec_def strict_mono_dec_def inj_on_def)
 
+definition pow_aux :: "real poly \<Rightarrow> nat \<Rightarrow> real poly" where "pow_aux \<equiv> op ^"
+definition term_of_rpoly_aux :: "real poly \<Rightarrow> _" where "term_of_rpoly_aux = Code_Evaluation.term_of"
+definition term_of_nat_aux :: "nat \<Rightarrow> _" where "term_of_nat_aux = Code_Evaluation.term_of"
+definition zero_aux :: "real poly" where "zero_aux = Groups.zero"
 
 subsection {* Setup for the ``sturm'' method *}
 
@@ -1215,4 +1392,11 @@ method_setup sturm = {*
   Scan.succeed (fn ctxt => SIMPLE_METHOD' (Sturm.sturm_tac ctxt false))
 *}
 
+hide_const pow_aux term_of_rpoly_aux term_of_nat_aux zero_aux
+
+schematic_lemma A:
+  "card {x::real. -0.010831 < x \<and> x < 0.010831 \<and> 
+      1/120*x^5 + 1/24 * x^4 +1/6*x^3 - 49/16777216*x^2 - 17/2097152*x = 0} = ?n" by sturm
+
 end
+
