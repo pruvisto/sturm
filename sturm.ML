@@ -65,7 +65,7 @@ struct
 
 (* FIXME: figure out why static evaluation is so slow *)
 (*  val sturm_eval = Code_Evaluation.static_value {Ts = sturm_code_types, ctxt = @{context}, consts = deps};*)
-  val sturm_eval = Code_Evaluation.dynamic_value; 
+  val sturm_eval = Code_Evaluation.dynamic_value;
 
   val sturm_id_thmss = [@{thms sturm_id_PR_prio3}, @{thms sturm_id_PR_prio2}, 
                         @{thms sturm_id_PR_prio1}, @{thms sturm_id_PR_prio0}]

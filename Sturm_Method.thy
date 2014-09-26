@@ -1394,9 +1394,4 @@ method_setup sturm = {*
 
 hide_const pow_aux term_of_rpoly_aux term_of_nat_aux zero_aux
 
-schematic_lemma A:
-  "card {x::real. -0.010831 < x \<and> x < 0.010831 \<and> 
-      1/120*x^5 + 1/24 * x^4 +1/6*x^3 - 49/16777216*x^2 - 17/2097152*x = 0} = ?n" by sturm
-
 end
-
