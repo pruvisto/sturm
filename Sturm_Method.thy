@@ -3,6 +3,7 @@ header {* The ``sturm'' proof method *}
 (* Author: Manuel Eberl <eberlm@in.tum.de> *)
 theory Sturm_Method
 imports Sturm_Theorem Poly_Monotonicity "~~/src/HOL/Library/Code_Target_Numeral"
+  "~~/src/HOL/Library/Code_Char"
 begin
 
 subsection {* Preliminary lemmas *}

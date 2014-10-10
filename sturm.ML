@@ -54,18 +54,16 @@ struct
      @{const_name Sturm_Method.term_of_nat_aux},
      @{const_name Sturm_Method.zero_aux}];
 
-  val sturm_code_types = [@{typ HOL.bool}, @{typ Nat.nat}, @{typ Real.real}, @{typ Rat.rat},
-                          @{typ Int.int}, @{typ "real Polynomial.poly"}]
+  val sturm_code_types = [];
 
-(*  val sturm_conv = Code_Evaluation.static_conv {Ts = sturm_code_types, ctxt = @{context}, consts = deps}; *)
-  fun sturm_conv ctxt = Code_Evaluation.dynamic_conv ctxt;
+  val sturm_conv = Code_Evaluation.static_conv {Ts = sturm_code_types, ctxt = @{context}, consts = deps};
+(*  fun sturm_conv ctxt = Code_Evaluation.dynamic_conv ctxt; *)
 
   val sturm_holds_conv = Code_Runtime.static_holds_conv {ctxt = @{context}, consts = deps};
-(*  fun sturm_holds_conv ctxt = Code_Runtime.dynamic_holds_conv ctxt;*)
+(*  fun sturm_holds_conv ctxt = Code_Runtime.dynamic_holds_conv ctxt; *)
 
-(* FIXME: figure out why static evaluation is so slow *)
-(*  val sturm_eval = Code_Evaluation.static_value {Ts = sturm_code_types, ctxt = @{context}, consts = deps};*)
-  val sturm_eval = Code_Evaluation.dynamic_value;
+  val sturm_eval = Code_Evaluation.static_value {Ts = sturm_code_types, ctxt = @{context}, consts = deps}; 
+(*  val sturm_eval = Code_Evaluation.dynamic_value; *)
 
   val sturm_id_thmss = [@{thms sturm_id_PR_prio3}, @{thms sturm_id_PR_prio2}, 
                         @{thms sturm_id_PR_prio1}, @{thms sturm_id_PR_prio0}]
