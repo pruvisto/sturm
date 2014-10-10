@@ -1254,10 +1254,6 @@ lemma sturm_squarefree'_signs:
 proof-
   def d \<equiv> "gcd p (pderiv p)"
   with `p \<noteq> 0` have [simp]: "d \<noteq> 0" by simp
-  from poly_div_gcd_squarefree(1)[OF `p \<noteq> 0`]
-       coprime_imp_no_common_roots
-      have rsquarefree: "rsquarefree (p div d)" 
-      by (auto simp: rsquarefree_roots d_def)
 
   from i_in_range have i_in_range': "i < length (sturm p) - 2"
       unfolding sturm_squarefree'_def by simp
